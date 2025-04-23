@@ -5,7 +5,21 @@ package com.alibaba.cloud.ai.mcp.nacos2.registry.model;
 import java.util.Map;
 
 /**
- * @author Sunrisea
+ * McpServerInfo 类用于描述 MCP（Multi-Channel Platform）服务器的相关信息。
+ *
+ * 该类包含以下主要字段：
+ * - type: 服务器类型。
+ * - name: 服务器名称。
+ * - description: 服务器描述信息。
+ * - version: 服务器版本号。
+ * - enabled: 是否启用该服务器配置，默认为 true。
+ * - remoteServerConfig: 远程服务器配置信息。
+ * - localServerConfig: 本地服务器配置信息，以键值对形式存储。
+ * - toolsDescriptionRef: 工具描述引用信息。
+ * - promptDescriptionRef: 提示描述引用信息。
+ * - resourceDescriptionRef: 资源描述引用信息。
+ *
+ * 此类提供了 getter 和 setter 方法，用于访问和修改上述字段的值。
  */
 public class McpServerInfo {
 

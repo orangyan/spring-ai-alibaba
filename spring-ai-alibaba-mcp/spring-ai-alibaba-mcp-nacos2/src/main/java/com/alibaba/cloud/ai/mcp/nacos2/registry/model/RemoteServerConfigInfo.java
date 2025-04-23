@@ -3,7 +3,8 @@
 package com.alibaba.cloud.ai.mcp.nacos2.registry.model;
 
 /**
- * @author Sunrisea
+ * RemoteServerConfigInfo类用于存储远程服务器的配置信息
+ * 它提供了一些方法来获取和设置服务器的配置参数，如IP地址、端口号等
  */
 public class RemoteServerConfigInfo {
 

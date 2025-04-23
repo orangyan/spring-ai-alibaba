@@ -8,7 +8,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * @author Sunrisea
+ * JsonUtils 类是一个工具类，主要用于处理 JSON 格式的序列化和反序列化操作。
+ * 该类封装了 Jackson 库的核心功能，提供了静态方法以简化对象与 JSON 字符串之间的转换。
+ *
+ * <p>主要功能包括：
+ * <ul>
+ *     <li>将对象序列化为 JSON 字符串。</li>
+ *     <li>将 JSON 字符串反序列化为指定类型的对象。</li>
+ * </ul>
  */
 public class JsonUtils {
 

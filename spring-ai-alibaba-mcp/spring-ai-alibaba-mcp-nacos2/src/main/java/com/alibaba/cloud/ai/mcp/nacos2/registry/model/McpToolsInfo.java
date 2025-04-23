@@ -8,7 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Sunrisea
+ * McpToolsInfo 类用于封装 MCP 工具相关信息。
+ * 包含以下主要功能：
+ * 1. 提供工具列表（tools）的获取与设置方法；
+ * 2. 提供工具元信息映射（toolsMeta）的获取与设置方法。
  */
 public class McpToolsInfo {
 
