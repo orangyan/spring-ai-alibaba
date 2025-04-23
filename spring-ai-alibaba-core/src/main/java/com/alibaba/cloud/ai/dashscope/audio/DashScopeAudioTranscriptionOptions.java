@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.audio;
 
 import java.util.List;
@@ -22,6 +8,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.ai.audio.transcription.AudioTranscriptionOptions;
 
 /**
+ * DashScope音频转录选项类
+ * 用于配置音频转录的各种参数，如模型、词汇表ID、短语ID等
+ *
  * @author xYLiu
  * @author yuluo
  * @author kevinlin09
@@ -30,29 +19,56 @@ public class DashScopeAudioTranscriptionOptions implements AudioTranscriptionOpt
 
 	// @formatter:off
     /**
-     * Audio Transcription models.
+     * 音频转录模型
+     * 默认使用 paraformer-v2 模型
      */
     @JsonProperty("model")
     private String model = "paraformer-v2";
 
+    /**
+     * 词汇表ID
+     * 用于自定义词汇识别
+     */
     @JsonProperty("vocabulary_id")
     private String vocabularyId;
 
+    /**
+     * 短语ID
+     * 用于自定义短语识别
+     */
     @JsonProperty("phrase_id")
     private String phraseId;
 
+    /**
+     * 音频采样率
+     */
 	@JsonProperty("sample_rate")
 	private Integer sampleRate;
 
+    /**
+     * 音频格式
+     */
 	@JsonProperty("format")
 	private AudioFormat format;
 
+    /**
+     * 音频通道ID列表
+     * 默认使用通道0
+     */
     @JsonProperty("channel_id")
     private List<Integer> channelId = List.of(0);
 
+    /**
+     * 是否启用不流畅语音移除
+     * 默认为false
+     */
     @JsonProperty("disfluency_removal_enabled")
     private Boolean disfluencyRemovalEnabled = false;
 
+    /**
+     * 语言提示列表
+     * 默认支持中文和英文
+     */
     @JsonProperty("language_hints")
     private List<String> languageHints = List.of("zh", "en");
 
@@ -176,19 +192,31 @@ public class DashScopeAudioTranscriptionOptions implements AudioTranscriptionOpt
 
 	}
 
+	/**
+	 * 音频格式枚举
+	 * 支持多种常见的音频格式
+	 */
 	public enum AudioFormat {
 
 		// @formatter:off
+		/** PCM格式 */
 		@JsonProperty("pcm") PCM("pcm"),
+		/** WAV格式 */
 		@JsonProperty("wav") WAV("wav"),
+		/** MP3格式 */
 		@JsonProperty("mp3") MP3("mp3"),
+		/** OPUS格式 */
 		@JsonProperty("opus") OPUS("opus"),
+		/** SPEEX格式 */
 		@JsonProperty("speex") SPEEX("speex"),
+		/** AAC格式 */
 		@JsonProperty("aac") AAC("aac"),
+		/** AMR格式 */
 		@JsonProperty("amr") AMR("amr");
 
 		// @formatter:on
 
+		/** 格式值 */
 		public final String value;
 
 		AudioFormat(String value) {

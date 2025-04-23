@@ -1,28 +1,29 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.audio.synthesis;
 
 import org.springframework.ai.model.ModelOptions;
 import org.springframework.lang.Nullable;
 
 /**
+ * 语音合成选项接口
+ * 
+ * 定义了语音合成功能的配置选项，用于：
+ * - 设置语音合成模型
+ * - 配置语音合成参数
+ * - 自定义语音合成行为
+ * 
+ * 实现类需要提供具体的语音合成选项实现。
+ * 
  * @author kevinlin09
+ * @since 1.0.0-M2
  */
 public interface SpeechSynthesisOptions extends ModelOptions {
 
+	/**
+	 * 获取语音合成模型名称
+	 * 
+	 * @return 语音合成模型名称，可能为 null
+	 */
 	@Nullable
 	String getModel();
 

@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.agent;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,31 +7,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 /**
+ * DashScope代理RAG选项类
+ * 用于配置检索增强生成（RAG）相关的参数
+ * 
  * @author kevinlin09
  */
 public class DashScopeAgentRagOptions {
 
-	/** knowledge base ids */
+	/** 知识库ID列表，用于指定要检索的知识库 */
 	@JsonProperty("pipeline_ids")
 	private List<String> pipelineIds;
 
-	/** file ids of knowledge base */
+	/** 知识库文件ID列表，用于指定要检索的文件 */
 	@JsonProperty("file_ids")
 	private List<String> fileIds;
 
-	/** tags of knowledge base */
+	/** 知识库标签列表，用于按标签过滤检索结果 */
 	@JsonProperty("tags")
 	private List<String> tags;
 
-	/** metadata filter of knowledge base query */
+	/** 知识库查询的元数据过滤器，用于按元数据过滤检索结果 */
 	@JsonProperty("metadata_filter")
 	private JsonNode metadataFilter;
 
-	/** structured filter of knowledge base query */
+	/** 知识库查询的结构化过滤器，用于按结构化数据过滤检索结果 */
 	@JsonProperty("structured_filter")
 	private JsonNode structuredFilter;
 
-	/** file ID is a temporary file associated with the current session */
+	/** 会话文件ID列表，用于指定与当前会话关联的临时文件 */
 	@JsonProperty("session_file_ids")
 	private List<String> sessionFileIds;
 

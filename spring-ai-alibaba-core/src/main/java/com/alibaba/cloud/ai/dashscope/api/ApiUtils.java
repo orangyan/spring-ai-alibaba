@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.api;
 
 import java.util.HashMap;
@@ -26,21 +12,45 @@ import org.springframework.http.MediaType;
 import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.*;
 
 /**
+ * API 工具类，提供处理 API 请求头部信息的工具方法
+ * 
  * @author nuocheng.lxm
  * @since 1.0.0-M2
  */
 public class ApiUtils {
 
+	/** 用户代理标识 */
 	private static final String USER_AGENT = userAgent();
 
+	/**
+	 * 获取 JSON 内容类型的请求头
+	 * 
+	 * @param apiKey API 密钥
+	 * @return 请求头配置消费者
+	 */
 	public static Consumer<HttpHeaders> getJsonContentHeaders(String apiKey) {
 		return getJsonContentHeaders(apiKey, null);
 	}
 
+	/**
+	 * 获取 JSON 内容类型的请求头
+	 * 
+	 * @param apiKey API 密钥
+	 * @param workspaceId 工作空间 ID
+	 * @return 请求头配置消费者
+	 */
 	public static Consumer<HttpHeaders> getJsonContentHeaders(String apiKey, String workspaceId) {
 		return getJsonContentHeaders(apiKey, workspaceId, false);
 	}
 
+	/**
+	 * 获取 JSON 内容类型的请求头
+	 * 
+	 * @param apiKey API 密钥
+	 * @param workspaceId 工作空间 ID
+	 * @param stream 是否启用流式传输
+	 * @return 请求头配置消费者
+	 */
 	public static Consumer<HttpHeaders> getJsonContentHeaders(String apiKey, String workspaceId, boolean stream) {
 		return (headers) -> {
 			headers.setBearerAuth(apiKey);
@@ -57,6 +67,15 @@ public class ApiUtils {
 		};
 	}
 
+	/**
+	 * 获取 Map 内容类型的请求头
+	 * 
+	 * @param apiKey API 密钥
+	 * @param isSecurityCheck 是否启用安全检查
+	 * @param workspace 工作空间
+	 * @param customHeaders 自定义请求头
+	 * @return 请求头 Map
+	 */
 	public static Map<String, String> getMapContentHeaders(String apiKey, boolean isSecurityCheck, String workspace,
 			Map<String, String> customHeaders) {
 		Map<String, String> headers = new HashMap<>();
@@ -74,6 +93,16 @@ public class ApiUtils {
 		return headers;
 	}
 
+	/**
+	 * 获取音频转录的请求头
+	 * 
+	 * @param apiKey API 密钥
+	 * @param workspace 工作空间
+	 * @param isAsyncTask 是否异步任务
+	 * @param isSecurityCheck 是否启用安全检查
+	 * @param isSSE 是否启用 SSE
+	 * @return 请求头配置消费者
+	 */
 	public static Consumer<HttpHeaders> getAudioTranscriptionHeaders(String apiKey, String workspace,
 			Boolean isAsyncTask, Boolean isSecurityCheck, Boolean isSSE) {
 		return (headers) -> {
@@ -104,6 +133,12 @@ public class ApiUtils {
 		};
 	}
 
+	/**
+	 * 获取文件上传的请求头
+	 * 
+	 * @param input 输入参数
+	 * @return 请求头配置消费者
+	 */
 	public static Consumer<HttpHeaders> getFileUploadHeaders(Map<String, String> input) {
 		return (headers) -> {
 			String contentType = input.remove(HttpHeaders.CONTENT_TYPE);
@@ -114,6 +149,11 @@ public class ApiUtils {
 		};
 	}
 
+	/**
+	 * 生成用户代理字符串
+	 * 
+	 * @return 用户代理字符串
+	 */
 	private static String userAgent() {
 		return String.format("%s/%s; java/%s; platform/%s; processor/%s", SDK_FLAG, "1.0.0",
 				System.getProperty("java.version"), System.getProperty("os.name"), System.getProperty("os.arch"));

@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.audio;
 
 import com.alibaba.cloud.ai.dashscope.common.DashScopeException;
@@ -41,25 +27,52 @@ import java.time.Duration;
 
 import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.*;
 
+/**
+ * DashScope音频转录模型类
+ * 提供音频转录功能，支持同步、异步和流式转录
+ * 支持实时音频流转录和文件转录两种模式
+ */
 public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel {
 
+	/** 日志记录器 */
 	private static final Logger logger = LoggerFactory.getLogger(DashScopeAudioTranscriptionModel.class);
 
+	/** DashScope音频转录API客户端 */
 	private final DashScopeAudioTranscriptionApi api;
 
+	/** 音频转录选项配置 */
 	private final DashScopeAudioTranscriptionOptions options;
 
+	/** 重试模板，用于处理API调用失败时的重试逻辑 */
 	private final RetryTemplate retryTemplate;
 
+	/**
+	 * 构造函数，使用默认配置
+	 * 
+	 * @param api DashScope音频转录API客户端
+	 */
 	public DashScopeAudioTranscriptionModel(DashScopeAudioTranscriptionApi api) {
 		this(api, DashScopeAudioTranscriptionOptions.builder().build());
 	}
 
+	/**
+	 * 构造函数，使用自定义配置
+	 * 
+	 * @param api DashScope音频转录API客户端
+	 * @param options 音频转录选项配置
+	 */
 	public DashScopeAudioTranscriptionModel(DashScopeAudioTranscriptionApi api,
 			DashScopeAudioTranscriptionOptions options) {
 		this(api, options, RetryUtils.DEFAULT_RETRY_TEMPLATE);
 	}
 
+	/**
+	 * 构造函数，使用完全自定义配置
+	 * 
+	 * @param api DashScope音频转录API客户端
+	 * @param options 音频转录选项配置
+	 * @param retryTemplate 重试模板
+	 */
 	public DashScopeAudioTranscriptionModel(DashScopeAudioTranscriptionApi api,
 			DashScopeAudioTranscriptionOptions options, RetryTemplate retryTemplate) {
 		this.api = api;
@@ -67,6 +80,13 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		this.retryTemplate = retryTemplate;
 	}
 
+	/**
+	 * 异步调用音频转录
+	 * 提交转录任务后立即返回，不等待结果
+	 * 
+	 * @param prompt 音频转录提示
+	 * @return 音频转录响应
+	 */
 	@Override
 	public AudioTranscriptionResponse asyncCall(AudioTranscriptionPrompt prompt) {
 		DashScopeAudioTranscriptionApi.Request request = createRequest(prompt);
@@ -81,6 +101,12 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		return toResponse(response.getBody());
 	}
 
+	/**
+	 * 获取指定任务ID的转录结果
+	 * 
+	 * @param taskId 任务ID
+	 * @return 音频转录响应
+	 */
 	@Override
 	public AudioTranscriptionResponse fetch(String taskId) {
 		AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(null);
@@ -92,6 +118,14 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		return toResponse(Objects.requireNonNull(response.getBody()));
 	}
 
+	/**
+	 * 同步调用音频转录
+	 * 提交任务后等待直到获取结果
+	 * 使用轮询方式检查任务状态
+	 * 
+	 * @param prompt 音频转录提示
+	 * @return 音频转录响应
+	 */
 	@Override
 	public AudioTranscriptionResponse call(AudioTranscriptionPrompt prompt) {
 		DashScopeAudioTranscriptionApi.Request request = createRequest(prompt);
@@ -136,6 +170,14 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		}
 	}
 
+	/**
+	 * 流式调用音频转录
+	 * 支持实时音频流转录
+	 * 使用WebSocket进行实时通信
+	 * 
+	 * @param prompt 音频转录提示
+	 * @return 音频转录响应流
+	 */
 	@Override
 	public Flux<AudioTranscriptionResponse> stream(AudioTranscriptionPrompt prompt) {
 		DashScopeAudioTranscriptionApi.RealtimeRequest run_request = createRealtimeRequest(prompt,
@@ -166,6 +208,13 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		return this.api.realtimeStream(audio).map(this::toResponse);
 	}
 
+	/**
+	 * 创建音频转录请求
+	 * 用于文件转录模式
+	 * 
+	 * @param prompt 音频转录提示
+	 * @return DashScope音频转录请求对象
+	 */
 	private DashScopeAudioTranscriptionApi.Request createRequest(AudioTranscriptionPrompt prompt) {
 		DashScopeAudioTranscriptionOptions options = mergeOptions(prompt);
 
@@ -185,6 +234,14 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		}
 	}
 
+	/**
+	 * 创建实时音频转录请求
+	 * 用于流式转录模式
+	 * 
+	 * @param prompt 音频转录提示
+	 * @param action WebSocket事件类型
+	 * @return DashScope实时音频转录请求对象
+	 */
 	private DashScopeAudioTranscriptionApi.RealtimeRequest createRealtimeRequest(AudioTranscriptionPrompt prompt,
 			DashScopeWebSocketClient.EventType action) {
 		DashScopeAudioTranscriptionOptions options = mergeOptions(prompt);
@@ -198,6 +255,13 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 								options.getFormat(), options.getDisfluencyRemovalEnabled())));
 	}
 
+	/**
+	 * 合并选项配置
+	 * 将运行时选项与默认选项合并
+	 * 
+	 * @param prompt 音频转录提示
+	 * @return 合并后的选项配置
+	 */
 	private DashScopeAudioTranscriptionOptions mergeOptions(AudioTranscriptionPrompt prompt) {
 		DashScopeAudioTranscriptionOptions options = DashScopeAudioTranscriptionOptions.builder().build();
 
@@ -212,6 +276,13 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		return options;
 	}
 
+	/**
+	 * 将API响应转换为音频转录响应
+	 * 用于文件转录模式
+	 * 
+	 * @param apiResponse API响应对象
+	 * @return 音频转录响应
+	 */
 	private AudioTranscriptionResponse toResponse(DashScopeAudioTranscriptionApi.Response apiResponse) {
 		DashScopeAudioTranscriptionApi.Response.Output apiOutput = apiResponse.output();
 		List<DashScopeAudioTranscriptionApi.Response.Output.Result> apiResults = apiOutput.results();
@@ -250,6 +321,13 @@ public class DashScopeAudioTranscriptionModel implements AudioTranscriptionModel
 		return new AudioTranscriptionResponse(result, responseMetadata);
 	}
 
+	/**
+	 * 将实时API响应转换为音频转录响应
+	 * 用于流式转录模式
+	 * 
+	 * @param apiResponse 实时API响应对象
+	 * @return 音频转录响应
+	 */
 	private AudioTranscriptionResponse toResponse(DashScopeAudioTranscriptionApi.RealtimeResponse apiResponse) {
 		DashScopeAudioTranscriptionApi.RealtimeResponse.Payload apiPayload = apiResponse.payload();
 		DashScopeAudioTranscriptionApi.RealtimeResponse.Payload.Output apiOutput = apiPayload.output();

@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.api;
 
 import com.alibaba.cloud.ai.dashscope.agent.DashScopeAgentFlowStreamMode;
@@ -32,30 +18,62 @@ import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.DEFAUL
 import java.util.List;
 
 /**
+ * DashScope 智能体 API 接口，提供与智能体服务交互的功能
+ * 支持同步调用和流式调用两种方式
+ * 
  * @author linkesheng.lks
  * @since 1.0.0-M2
  */
 public class DashScopeAgentApi {
 
+	/** REST 客户端，用于同步 API 调用 */
 	private final RestClient restClient;
 
+	/** Web 客户端，用于流式 API 调用 */
 	private final WebClient webClient;
 
+	/**
+	 * 构造函数，使用默认配置初始化 API 客户端
+	 * 
+	 * @param apiKey API 密钥
+	 */
 	public DashScopeAgentApi(String apiKey) {
 		this(DEFAULT_BASE_URL, apiKey, RestClient.builder(), WebClient.builder(),
 				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 	}
 
+	/**
+	 * 构造函数，使用默认配置和工作空间 ID 初始化 API 客户端
+	 * 
+	 * @param apiKey API 密钥
+	 * @param workSpaceId 工作空间 ID
+	 */
 	public DashScopeAgentApi(String apiKey, String workSpaceId) {
 		this(DEFAULT_BASE_URL, apiKey, workSpaceId, RestClient.builder(), WebClient.builder(),
 				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 	}
 
+	/**
+	 * 构造函数，使用自定义基础 URL 和工作空间 ID 初始化 API 客户端
+	 * 
+	 * @param baseUrl API 基础 URL
+	 * @param apiKey API 密钥
+	 * @param workSpaceId 工作空间 ID
+	 */
 	public DashScopeAgentApi(String baseUrl, String apiKey, String workSpaceId) {
 		this(baseUrl, apiKey, workSpaceId, RestClient.builder(), WebClient.builder(),
 				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 	}
 
+	/**
+	 * 构造函数，使用自定义配置初始化 API 客户端
+	 * 
+	 * @param baseUrl API 基础 URL
+	 * @param apiKey API 密钥
+	 * @param restClientBuilder REST 客户端构建器
+	 * @param webClientBuilder Web 客户端构建器
+	 * @param responseErrorHandler 响应错误处理器
+	 */
 	public DashScopeAgentApi(String baseUrl, String apiKey, RestClient.Builder restClientBuilder,
 			WebClient.Builder webClientBuilder, ResponseErrorHandler responseErrorHandler) {
 		this.restClient = restClientBuilder.baseUrl(baseUrl)
@@ -68,6 +86,16 @@ public class DashScopeAgentApi {
 			.build();
 	}
 
+	/**
+	 * 构造函数，使用自定义配置和工作空间 ID 初始化 API 客户端
+	 * 
+	 * @param baseUrl API 基础 URL
+	 * @param apiKey API 密钥
+	 * @param workSpaceId 工作空间 ID
+	 * @param restClientBuilder REST 客户端构建器
+	 * @param webClientBuilder Web 客户端构建器
+	 * @param responseErrorHandler 响应错误处理器
+	 */
 	public DashScopeAgentApi(String baseUrl, String apiKey, String workSpaceId, RestClient.Builder restClientBuilder,
 			WebClient.Builder webClientBuilder, ResponseErrorHandler responseErrorHandler) {
 		this.restClient = restClientBuilder.baseUrl(baseUrl)
@@ -80,11 +108,23 @@ public class DashScopeAgentApi {
 			.build();
 	}
 
+	/**
+	 * 同步调用智能体服务
+	 * 
+	 * @param request 智能体请求参数
+	 * @return 智能体响应实体
+	 */
 	public ResponseEntity<DashScopeAgentResponse> call(DashScopeAgentRequest request) {
 		String uri = "/api/v1/apps/" + request.appId() + "/completion";
 		return restClient.post().uri(uri).body(request).retrieve().toEntity(DashScopeAgentResponse.class);
 	}
 
+	/**
+	 * 流式调用智能体服务
+	 * 
+	 * @param request 智能体请求参数
+	 * @return 智能体响应流
+	 */
 	public Flux<DashScopeAgentResponse> stream(DashScopeAgentRequest request) {
 		String uri = "/api/v1/apps/" + request.appId() + "/completion";
 		return webClient.post()
@@ -97,12 +137,18 @@ public class DashScopeAgentApi {
 			});
 	}
 
-	// @formatter:off
+	/**
+	 * 智能体请求参数
+	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record DashScopeAgentRequest(
 			@JsonProperty("app_id") String appId,
 			@JsonProperty("input") DashScopeAgentRequestInput input,
 			@JsonProperty("parameters") DashScopeAgentRequestParameters parameters) {
+		
+		/**
+		 * 智能体请求输入参数
+		 */
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record DashScopeAgentRequestInput(
 				@JsonProperty("prompt") String prompt,
@@ -111,6 +157,10 @@ public class DashScopeAgentApi {
 				@JsonProperty("memory_id") String memoryId,
 				@JsonProperty("image_list") List<String> images,
 				@JsonProperty("biz_params") JsonNode bizParams) {
+			
+			/**
+			 * 智能体请求消息
+			 */
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record DashScopeAgentRequestMessage(
 					@JsonProperty("role") String role,
@@ -118,6 +168,9 @@ public class DashScopeAgentApi {
 			}
 		}
 
+		/**
+		 * 智能体请求配置参数
+		 */
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record DashScopeAgentRequestParameters(
 				@JsonProperty("flow_stream_mode") DashScopeAgentFlowStreamMode flowStreamMode,
@@ -125,6 +178,10 @@ public class DashScopeAgentApi {
 				@JsonProperty("incremental_output") Boolean incrementalOutput,
 				@JsonProperty("rag_options") DashScopeAgentRequestRagOptions ragOptions
 		) {
+			
+			/**
+			 * 智能体 RAG 选项参数
+			 */
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record DashScopeAgentRequestRagOptions(
 					@JsonProperty("pipeline_ids") List<String> pipelineIds,
@@ -137,6 +194,9 @@ public class DashScopeAgentApi {
 		}
 	}
 
+	/**
+	 * 智能体响应
+	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record DashScopeAgentResponse(
 			@JsonProperty("status_code") Integer statusCode,
@@ -145,6 +205,10 @@ public class DashScopeAgentApi {
 			@JsonProperty("message") String message,
 			@JsonProperty("output") DashScopeAgentResponseOutput output,
 			@JsonProperty("usage") DashScopeAgentResponseUsage usage) {
+		
+		/**
+		 * 智能体响应输出
+		 */
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record DashScopeAgentResponseOutput(
 				@JsonProperty("text") String text,
@@ -152,6 +216,10 @@ public class DashScopeAgentApi {
 				@JsonProperty("session_id") String sessionId,
 				@JsonProperty("thoughts") List<DashScopeAgentResponseOutputThoughts> thoughts,
 				@JsonProperty("doc_references") List<DashScopeAgentResponseOutputDocReference> docReferences) {
+			
+			/**
+			 * 智能体响应思考过程
+			 */
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record DashScopeAgentResponseOutputThoughts(
 					@JsonProperty("thought") String thought,
@@ -165,6 +233,9 @@ public class DashScopeAgentApi {
 					@JsonProperty("reasoning_content") String reasoningContent) {
 			}
 
+			/**
+			 * 智能体响应文档引用
+			 */
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record DashScopeAgentResponseOutputDocReference(
 					@JsonProperty("index_id") String indexId,
@@ -177,9 +248,16 @@ public class DashScopeAgentApi {
 			}
 		}
 
+		/**
+		 * 智能体响应使用情况
+		 */
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record DashScopeAgentResponseUsage(
 				@JsonProperty("models") List<DashScopeAgentResponseUsageModels> models) {
+			
+			/**
+			 * 智能体响应模型使用情况
+			 */
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record DashScopeAgentResponseUsageModels(
 					@JsonProperty("model_id") String modelId,
@@ -188,5 +266,4 @@ public class DashScopeAgentApi {
 			}
 		}
 	}
-
 }

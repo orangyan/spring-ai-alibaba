@@ -1,18 +1,4 @@
-/*
- * Copyright 2024-2025 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.alibaba.cloud.ai.dashscope.agent;
 
 import java.util.List;
@@ -23,37 +9,48 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.ai.chat.prompt.ChatOptions;
 
 /**
+ * DashScope代理配置选项类
+ * 用于配置DashScope代理的各种参数和选项
+ * 
  * @author yuluo
  * @author <a href="mailto:yuluo08290126@gmail.com">yuluo</a>
  * @since 1.0.0-M2
  */
-
 public class DashScopeAgentOptions implements ChatOptions {
 
+	// 应用ID，用于标识特定的DashScope应用
 	@JsonProperty("app_id")
 	private String appId;
 
+	// 会话ID，用于维护对话上下文
 	@JsonProperty("session_id")
 	private String sessionId;
 
+	// 记忆ID，用于存储和检索对话历史
 	@JsonProperty("memory_id")
 	private String memoryId;
 
+	// 是否启用增量输出，控制流式输出的行为
 	@JsonProperty("incremental_output")
 	private Boolean incrementalOutput;
 
+	// 是否包含思维过程，控制是否输出推理过程
 	@JsonProperty("has_thoughts")
 	private Boolean hasThoughts;
 
+	// 图片列表，用于多模态输入
 	@JsonProperty("images")
 	private List<String> images;
 
+	// 业务参数，用于传递自定义的业务逻辑参数
 	@JsonProperty("biz_params")
 	private JsonNode bizParams;
 
+	// RAG选项，用于配置检索增强生成的相关参数
 	@JsonProperty("rag_options")
 	private DashScopeAgentRagOptions ragOptions;
 
+	// 流式输出模式，控制流式输出的格式
 	@JsonProperty("flow_stream_mode")
 	private DashScopeAgentFlowStreamMode flowStreamMode;
 
