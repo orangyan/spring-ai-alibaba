@@ -11,8 +11,9 @@ import org.springframework.util.Assert;
 import java.util.List;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/5 14:42
+ * 实现DocumentRetriever接口的DashScopeDocumentRetriever类
+ * 该类用于从DashScope文档存储中检索文档
+ * 它提供了根据不同条件检索文档的方法，例如通过文档ID，随机选择或根据文档特征进行排序
  */
 public class DashScopeDocumentRetriever implements DocumentRetriever {
 

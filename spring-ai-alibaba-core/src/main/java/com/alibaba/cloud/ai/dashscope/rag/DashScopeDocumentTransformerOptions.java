@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/6 16:21
+ * DashScopeDocumentTransformerOptions 类用于配置 Document Transformer 模型的参数
+ * 该类提供了构建和配置文档转换任务所需的各种选项的方法
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DashScopeDocumentTransformerOptions {

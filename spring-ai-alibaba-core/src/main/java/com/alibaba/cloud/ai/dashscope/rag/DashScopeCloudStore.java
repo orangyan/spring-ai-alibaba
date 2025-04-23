@@ -15,8 +15,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/6 15:42
+ * DashScopeCloudStore 类实现了 VectorStore 接口，用于在云环境中存储和管理向量数据
+ * 该类提供了向量数据的存储、检索和管理功能，特别针对云平台进行了优化，以确保高效、安全地处理大规模向量数据
  */
 public class DashScopeCloudStore implements VectorStore {
 

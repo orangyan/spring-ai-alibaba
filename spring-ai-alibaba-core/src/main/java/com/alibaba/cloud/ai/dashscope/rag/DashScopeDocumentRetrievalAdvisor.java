@@ -28,11 +28,8 @@ import org.springframework.util.StringUtils;
 import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.RETRIEVED_DOCUMENTS;
 
 /**
- * Title Document retrieval advisor.<br>
- * Description Document retrieval advisor.<br>
- *
- * @author yuanci.ytb
- * @since 2024/8/16 11:29
+ * DashScope文档检索建议器类，用于在调用DashScope API进行文档检索时提供额外的处理逻辑
+ * 该类实现了CallAroundAdvisor和StreamAroundAdvisor接口，允许它在API调用前后提供环绕通知和流处理功能
  */
 
 public class DashScopeDocumentRetrievalAdvisor implements BaseAdvisor {

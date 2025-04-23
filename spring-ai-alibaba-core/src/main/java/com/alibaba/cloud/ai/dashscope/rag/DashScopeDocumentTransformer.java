@@ -17,8 +17,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/6 16:19
+ * 实现了DocumentTransformer接口的类，用于对文档进行转换处理
+ * 该类通过调用DashScope API对文档进行处理，旨在提供一种对文档内容进行转换或分析的方式
  */
 public class DashScopeDocumentTransformer implements DocumentTransformer {
 

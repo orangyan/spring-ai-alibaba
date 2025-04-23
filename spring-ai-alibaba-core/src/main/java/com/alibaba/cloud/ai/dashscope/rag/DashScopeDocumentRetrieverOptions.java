@@ -8,8 +8,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/6 11:04
+ * DashScopeDocumentRetrieverOptions 类用于配置文档检索功能的选项。
+ * 该类通过多个参数定义了文档检索的行为，包括索引名称、相似度计算、重写功能、重排序功能等。
+ *
+ * 参数说明：
+ * - indexName: 指定用于检索的索引名称。
+ * - denseSimilarityTopK: 密集向量相似度计算时返回的 Top K 结果数量，默认值为 100。
+ * - sparseSimilarityTopK: 稀疏向量相似度计算时返回的 Top K 结果数量，默认值为 100。
+ * - enableRewrite: 是否启用查询重写功能，默认值为 false。
+ * - rewriteModelName: 查询重写功能使用的模型名称，默认值为 "conv-rewrite-qwen-1.8b"。
+ * - enableReranking: 是否启用重排序功能，默认值为 true。
+ * - rerankModelName: 重排序功能使用的模型名称，默认值为 "gte-rerank-hybrid"。
+ * - rerankMinScore: 重排序功能的最小分数阈值，默认值为 0.01。
+ * - rerankTopN: 重排序功能返回的 Top N 结果数量，默认值为 5。
+ *
+ * 此外，该类还提供了一个内部静态 Builder 类，用于以链式调用的方式构建配置实例。
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DashScopeDocumentRetrieverOptions {
