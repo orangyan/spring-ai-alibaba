@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.document;
 
 import org.junit.jupiter.api.Test;

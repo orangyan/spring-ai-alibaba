@@ -1,5 +1,3 @@
-
-
 package com.alibaba.cloud.ai.transformer.splitter;
 
 import java.io.IOException;
@@ -19,13 +17,17 @@ import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.util.Assert;
 
 /**
- * Title Sentence splitter with nlp model.<br>
- * Description Sentence splitter with nlp model.<br>
+ * 句子分割器类，基于自然语言处理模型实现句子分割功能。
+ * 该类继承自 TextSplitter，提供将文本分割为句子的能力，并支持根据编码令牌限制进行分块。
+ *
+ * 主要功能：
+ * 1. 使用 OpenNLP 的 SentenceDetectorME 进行句子检测和分割。
+ * 2. 根据指定的 chunkSize（块大小）对句子进行进一步分块，确保每个块的编码令牌数不超过限制。
+ * 3. 内部使用 CL100K_BASE 编码类型对文本进行编码，计算令牌数量。
  *
  * @author yuanci.ytb
  * @since 1.0.0-M2
  */
-
 public class SentenceSplitter extends TextSplitter {
 
 	private final EncodingRegistry registry = Encodings.newLazyEncodingRegistry();

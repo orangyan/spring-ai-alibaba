@@ -11,13 +11,9 @@ import org.springframework.ai.evaluation.EvaluationResponse;
 import java.util.Collections;
 
 /**
- * Title Answer relevancy evaluator.<br>
- * Description Answer relevancy evaluator.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * AnswerRelevancyEvaluator类用于评估答案的相关性
+ * 它继承自LaajEvaluator类，旨在通过特定的算法或逻辑判断答案与问题或上下文的相关程度
  */
-
 public class AnswerRelevancyEvaluator extends LaajEvaluator {
 
 	private static final String DEFAULT_EVALUATION_PROMPT_TEXT = """

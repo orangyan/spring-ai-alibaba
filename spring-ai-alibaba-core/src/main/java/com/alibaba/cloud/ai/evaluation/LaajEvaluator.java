@@ -11,13 +11,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Title LLM as a judge evaluator.<br>
- * Description LLM as a judge evaluator.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * LaajEvaluator类是一个抽象类，实现了Evaluator接口。
+ * 该类提供了一个框架，用于评估某些条件或表达式的结果。
+ * 由于LaajEvaluator是一个抽象类，它不能直接被实例化，但可以作为子类的父类，提供通用的方法和属性。
+ * 子类可以继承LaajEvaluator，并根据具体需求实现其抽象方法。
  */
-
 public abstract class LaajEvaluator implements Evaluator {
 
 	private ChatClient.Builder chatClientBuilder;

@@ -11,13 +11,10 @@ import org.springframework.ai.evaluation.EvaluationResponse;
 import java.util.Collections;
 
 /**
- * Title Answer relevancy evaluator.<br>
- * Description Answer relevancy evaluator.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * AnswerFaithfulnessEvaluator类用于评估回答的忠实度
+ * 它继承自LaajEvaluator类，旨在通过特定的算法或规则集来衡量回答内容相对于某个标准或源文本的忠实程度
+ * 这种评估可以用于多种场景，如实现在线教育系统中对学生回答问题的准确性进行评分，或评估机器翻译、自动摘要等自然语言处理任务的结果
  */
-
 public class AnswerFaithfulnessEvaluator extends LaajEvaluator {
 
 	private static final String DEFAULT_EVALUATION_PROMPT_TEXT = """

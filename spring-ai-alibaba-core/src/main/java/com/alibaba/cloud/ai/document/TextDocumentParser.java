@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.document;
 
 import org.springframework.ai.document.Document;
@@ -12,8 +11,9 @@ import java.util.List;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * @author HeYQ
- * @since 2024-12-08 21:13
+ * TextDocumentParser类实现了DocumentParser接口，用于解析文本类型的文档
+ * 该类提供了处理和解析文本文档的方法，旨在将非结构化的文本数据转换为结构化数据
+ * 以便进一步处理或存储
  */
 public class TextDocumentParser implements DocumentParser {
 

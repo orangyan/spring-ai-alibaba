@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.document;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -17,10 +16,20 @@ import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 /**
+ * JsonDocumentParser 类实现了 DocumentParser 接口，用于解析 JSON 格式的文档。
+ * 该类通过 Jackson 库将 JSON 数据转换为 Document 对象列表，支持从 InputStream 中读取数据，
+ * 并根据指定的 JSON 键提取文本内容和元数据。
+ *
+ * <p>主要功能包括：
+ * <ul>
+ *     <li>解析整个 JSON 文档或通过 JSON Pointer 提取特定部分。</li>
+ *     <li>支持自定义 JsonMetadataGenerator 生成元数据。</li>
+ *     <li>支持多个 JSON 键作为文档文本的来源。</li>
+ * </ul>
+ *
  * @author HeYQ
  * @since 2024-12-08 21:13
  */
-
 public class JsonDocumentParser implements DocumentParser {
 
 	private final JsonMetadataGenerator jsonMetadataGenerator;

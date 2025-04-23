@@ -6,8 +6,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * @author nuocheng.lxm
- * @since 2024/8/9 10:00
+ * DashScopeStoreOptions 类用于定义与 DashScope 存储相关的配置选项。
+ * 该类包含以下主要功能：
+ * 1. 索引名称的设置与获取。
+ * 2. 文档索引切分、向量化以及检索的相关配置管理。
+ *
+ * 通过构造函数初始化时，需要提供索引名称（indexName），这是存储配置的核心标识。
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DashScopeStoreOptions {

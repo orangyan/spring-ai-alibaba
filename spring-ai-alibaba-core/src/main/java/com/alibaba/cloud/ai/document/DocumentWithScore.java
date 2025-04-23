@@ -1,5 +1,4 @@
 
-
 package com.alibaba.cloud.ai.document;
 
 import com.alibaba.cloud.ai.model.RerankResultMetadata;
@@ -10,13 +9,20 @@ import org.springframework.ai.model.ResultMetadata;
 import java.util.Objects;
 
 /**
- * Title Document with score.<br>
- * Description Document with score.<br>
+ * DocumentWithScore 类用于表示带有评分的文档对象。
+ * 该类实现了 ModelResult<Document> 接口，主要用于封装文档及其相关评分和元数据信息。
+ *
+ * <p>主要功能包括：
+ * <ul>
+ *   <li>存储文档对象（Document）</li>
+ *   <li>存储文档评分（score）</li>
+ *   <li>存储重排序结果元数据（RerankResultMetadata）</li>
+ *   <li>提供构建器模式（Builder）以简化对象创建过程</li>
+ * </ul>
  *
  * @author yuanci.ytb
  * @since 1.0.0-M2
  */
-
 public class DocumentWithScore implements ModelResult<Document> {
 
 	/**

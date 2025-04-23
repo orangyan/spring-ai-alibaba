@@ -1,5 +1,3 @@
-
-
 package com.alibaba.cloud.ai.model;
 
 import org.springframework.ai.document.Document;
@@ -8,13 +6,9 @@ import org.springframework.ai.model.ModelRequest;
 import java.util.List;
 
 /**
- * Title rerank request.<br>
- * Description rerank request.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * RerankRequest类实现了ModelRequest接口，用于对文档列表进行重新排序请求
+ * 它封装了与重新排序相关的操作和数据，以便于向模型请求处理
  */
-
 public class RerankRequest implements ModelRequest<List<Document>> {
 
 	private final String query;

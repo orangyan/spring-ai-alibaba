@@ -5,13 +5,9 @@ package com.alibaba.cloud.ai.dashscope.rerank;
 import com.alibaba.cloud.ai.model.RerankOptions;
 
 /**
- * Title DashScope rerank options.<br>
- * Description DashScope rerank options.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * DashScopeRerankOptions 类实现了 RerankOptions 接口，用于提供重排序功能的配置选项
+ * 该类主要负责定义和管理重排序过程中的各种参数和设置，以确保重排序功能能够根据不同的需求进行灵活调整
  */
-
 public class DashScopeRerankOptions implements RerankOptions {
 
 	/**

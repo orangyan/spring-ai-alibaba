@@ -9,13 +9,10 @@ import org.springframework.ai.evaluation.EvaluationResponse;
 import java.util.Collections;
 
 /**
- * Title Answer correctness evaluator.<br>
- * Description Answer correctness evaluator.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * AnswerCorrectnessEvaluator类用于评估答案的正确性
+ * 它继承自LaajEvaluator类，旨在通过特定的算法或逻辑判断答案的准确性
+ * 此类主要作用于处理和评判用户答案，确定其是否符合预期的标准或结果
  */
-
 public class AnswerCorrectnessEvaluator extends LaajEvaluator {
 
 	private static final String DEFAULT_EVALUATION_PROMPT_TEXT = """

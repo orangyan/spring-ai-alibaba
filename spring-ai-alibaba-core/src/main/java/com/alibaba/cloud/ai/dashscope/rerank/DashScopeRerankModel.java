@@ -25,13 +25,10 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 /**
- * Title Dashscope rerank model.<br>
- * Description Dashscope rerank model.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * 实现重排序模型接口的DashScopeRerankModel类
+ * 该类用于在DashScope应用中执行文本重排序任务
+ * 它通过特定的算法或策略对输入文本进行处理，以实现文本的重新排序
  */
-
 public class DashScopeRerankModel implements RerankModel {
 
 	private static final Logger logger = LoggerFactory.getLogger(DashScopeRerankModel.class);

@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.document;
 
 import org.springframework.ai.document.Document;
@@ -7,10 +6,9 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * @author HeYQ
- * @since 2024-12-02 11:25
+ * DocumentParser接口定义了文档解析的通用规范
+ * 此接口旨在为不同的文档类型提供统一的解析方法入口
  */
-
 public interface DocumentParser {
 
 	/**

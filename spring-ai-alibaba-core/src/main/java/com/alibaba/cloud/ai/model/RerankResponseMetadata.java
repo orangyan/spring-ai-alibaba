@@ -1,5 +1,3 @@
-
-
 package com.alibaba.cloud.ai.model;
 
 import java.util.Map;
@@ -10,13 +8,9 @@ import org.springframework.ai.model.AbstractResponseMetadata;
 import org.springframework.ai.model.ResponseMetadata;
 
 /**
- * Title rerank response metadata.<br>
- * Description rerank response metadata.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * 继承自 AbstractResponseMetadata 并实现 ResponseMetadata 接口的类，
+ * 用于表示重新排序响应的元数据
  */
-
 public class RerankResponseMetadata extends AbstractResponseMetadata implements ResponseMetadata {
 
 	private Usage usage = new EmptyUsage();

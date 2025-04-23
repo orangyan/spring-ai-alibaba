@@ -14,7 +14,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
+/**
+ * ConfigurablePromptTemplateFactory是一个工厂类，用于生成可配置的提示模板。
+ * 该类的设计目的是为了提供一个灵活的方式来创建提示模板，这些模板可以用于各种场景，如用户输入提示、错误消息等。
+ * 它允许通过配置不同的参数来定制提示模板，而不是依赖于硬编码的字符串，从而提高了代码的可维护性和可重用性。
+ */
 public class ConfigurablePromptTemplateFactory {
 
 	private static final Logger logger = LoggerFactory.getLogger(ConfigurablePromptTemplateFactory.class);

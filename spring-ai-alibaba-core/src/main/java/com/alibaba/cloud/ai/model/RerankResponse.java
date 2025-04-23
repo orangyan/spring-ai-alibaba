@@ -1,5 +1,3 @@
-
-
 package com.alibaba.cloud.ai.model;
 
 import java.util.List;
@@ -10,13 +8,9 @@ import org.springframework.ai.model.ModelResponse;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Title rerank response.<br>
- * Description rerank response.<br>
- *
- * @author yuanci.ytb
- * @since 1.0.0-M2
+ * 重新排序响应类，实现了ModelResponse接口，用于处理文档重新排序的任务
+ * 该类用于封装文档重新排序后的结果，提供给上层调用者
  */
-
 public class RerankResponse implements ModelResponse<DocumentWithScore> {
 
 	private final List<DocumentWithScore> documents;
