@@ -2,8 +2,9 @@
 package com.alibaba.cloud.ai.dashscope.common;
 
 /**
- * @author nuocheng.lxm
- * @since 1.0.0-M2
+ * DashScope异常类，继承自RuntimeException
+ * 用于处理DashScope应用中发生的运行时错误
+ * 继承RuntimeException意味着该异常可以被Java的异常处理机制捕获和处理
  */
 public class DashScopeException extends RuntimeException {
 

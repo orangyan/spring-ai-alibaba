@@ -32,7 +32,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author kevinlin09
+ * 自定义DashScope WebSocket客户端类
+ * 该类继承自WebSocketListener，用于监听和处理WebSocket的各种事件
+ * 主要功能包括连接的开启、消息的接收、错误的处理以及连接的关闭
  */
 public class DashScopeWebSocketClient extends WebSocketListener {
 

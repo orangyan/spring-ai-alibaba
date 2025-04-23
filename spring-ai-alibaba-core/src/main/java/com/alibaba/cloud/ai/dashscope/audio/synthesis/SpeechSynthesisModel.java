@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.dashscope.audio.synthesis;
 
 import org.springframework.ai.model.Model;

@@ -4,7 +4,9 @@ package com.alibaba.cloud.ai.dashscope.protocol;
 import com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants;
 
 /**
- * @author kevinlin09
+ * DashScopeWebSocketClientOptions 类用于定义和配置与 DashScope 服务进行 WebSocket 通信时的客户端选项。
+ * 该类提供了对 WebSocket 连接的基本配置，例如 URL、API 密钥以及工作空间 ID 等。
+ * 此外，还提供了一个构建器（Builder）模式的静态内部类，用于更方便地创建和配置实例。
  */
 public class DashScopeWebSocketClientOptions {
 

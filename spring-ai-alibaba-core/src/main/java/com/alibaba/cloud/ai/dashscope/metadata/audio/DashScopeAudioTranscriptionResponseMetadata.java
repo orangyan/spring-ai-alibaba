@@ -8,10 +8,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Audio transcription metadata implementation for {@literal DashScope}.
- *
- * @author yuluo
- * @see RateLimit
+ * DashScopeAudioTranscriptionResponseMetadata类继承自AudioTranscriptionResponseMetadata
+ * 用于处理DashScope音频转录服务的响应元数据
+ * 该类可能包含特定于DashScope服务的额外信息或处理逻辑
  */
 public class DashScopeAudioTranscriptionResponseMetadata extends AudioTranscriptionResponseMetadata {
 

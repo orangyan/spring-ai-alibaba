@@ -4,8 +4,9 @@ package com.alibaba.cloud.ai.dashscope.common;
 import com.alibaba.cloud.ai.dashscope.observation.conventions.AiProvider;
 
 /**
- * @author nuocheng.lxm
- * @since 1.0.0-M2
+ * DashScope API 常量类
+ * 该类主要用于定义与DashScope API相关的一些常量，包括API的路径、请求方法等
+ * 通过将这些常量集中定义，可以在使用时提供更好的可读性和可维护性
  */
 public final class DashScopeApiConstants {
 

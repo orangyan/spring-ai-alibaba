@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.dashscope.audio.transcription;
 
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;

@@ -2,8 +2,9 @@
 package com.alibaba.cloud.ai.dashscope.common;
 
 /**
- * @author nuocheng.lxm
- * @since 1.0.0-M2
+ * 错误代码枚举类
+ * 用于定义系统中可能遇到的各种错误状态码和对应的默认错误信息
+ * 这种枚举类的设计有助于错误处理的标准化和统一化，提高代码的可读性和可维护性
  */
 public enum ErrorCodeEnum {
 

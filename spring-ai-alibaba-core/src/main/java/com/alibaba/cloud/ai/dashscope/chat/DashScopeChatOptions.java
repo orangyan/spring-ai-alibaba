@@ -22,7 +22,11 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.util.Assert;
 
+
 /**
+ * DashScopeChatOptions 类实现了 FunctionCallingOptions 和 ChatOptions 接口。
+ * 该类用于为聊天应用程序配置选项，专为 DashScope 项目设计。
+ * 它提供了设置聊天选项和函数调用参数的能力，适用于需要在聊天中进行交互和函数调用的场景。
  * @author nottyjay
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)

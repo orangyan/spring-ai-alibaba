@@ -32,13 +32,10 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 /**
- * DashScope Embedding Model implementation.
- *
- * @author nuocheng.lxm
- * @author why_ohh
- * @author yuluo
- * @author <a href="mailto:550588941@qq.com">why_ohh</a>
- * @since 2024/7/31 10:57
+ * DashScopeEmbeddingModel类继承自AbstractEmbeddingModel，用于实现具体的嵌入模型功能。
+ * 该类主要负责定义和管理DashScope嵌入模型的元数据，如模型的唯一标识符（UID）、
+ * 模型的友好名称（Friendly name）、模型的描述、嵌入向量的维度、模型的版本信息等。
+ * 此外，该类还提供了序列化和反序列化嵌入模型对象的功能，以便于模型对象的存储和传输。
  */
 public class DashScopeEmbeddingModel extends AbstractEmbeddingModel {
 

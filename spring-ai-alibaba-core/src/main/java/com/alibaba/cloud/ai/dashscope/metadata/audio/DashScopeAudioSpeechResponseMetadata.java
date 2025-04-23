@@ -10,9 +10,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * @author yuluo
- * @author <a href="mailto:yuluo08290126@gmail.com">yuluo</a>
- * @since 2023.0.1.0
+ * 继承自 MutableResponseMetadata 的类，用于处理 DashScope 音频合成响应的元数据。
+ * 该类提供了获取请求 ID、日志记录和跟踪信息的方法，有助于监控和调试音频合成请求。
  */
 
 public class DashScopeAudioSpeechResponseMetadata extends MutableResponseMetadata {

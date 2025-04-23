@@ -2,15 +2,8 @@
 package com.alibaba.cloud.ai.dashscope.observation.conventions;
 
 /**
- * Extended collection of systems providing AI functionality. Based on the OpenTelemetry
- * Semantic Conventions for AI Systems.
- *
- * @author Lumian
- * @since 1.0.0
- * @see <a href=
- * "https://github.com/open-telemetry/semantic-conventions/tree/main/docs/gen-ai">OTel
- * Semantic Conventions</a>.
- * @see org.springframework.ai.observation.conventions.AiProvider
+ * AI服务提供商枚举类
+ * 该类列出了可用的AI服务提供商，每个提供商都有其特定的属性和识别度
  */
 public enum AiProvider {
 

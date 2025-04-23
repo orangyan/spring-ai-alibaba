@@ -6,9 +6,8 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.util.Assert;
 
 /**
- * {@link Usage} implementation for {@literal DashScopeAI}.
- *
- * @author Ken
+ * 实现Usage接口的类，用于记录和管理DashScope AI的使用情况
+ * 该类提供了记录AI使用情况的方法和逻辑，以便跟踪和分析AI服务的使用情况
  */
 public class DashScopeAiUsage implements Usage {
 

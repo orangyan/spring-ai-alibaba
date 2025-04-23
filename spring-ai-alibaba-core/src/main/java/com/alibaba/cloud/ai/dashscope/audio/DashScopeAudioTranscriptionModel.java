@@ -1,4 +1,3 @@
-
 package com.alibaba.cloud.ai.dashscope.audio;
 
 import com.alibaba.cloud.ai.dashscope.common.DashScopeException;
