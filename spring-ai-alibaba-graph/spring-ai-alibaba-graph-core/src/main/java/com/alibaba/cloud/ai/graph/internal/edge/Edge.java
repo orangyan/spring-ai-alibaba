@@ -1,6 +1,7 @@
 
 package com.alibaba.cloud.ai.graph.internal.edge;
 
+import com.alibaba.cloud.ai.graph.exception.Errors;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.StateGraph;
 import com.alibaba.cloud.ai.graph.internal.node.Node;
@@ -60,7 +61,7 @@ public record Edge(String sourceId, List<EdgeValue> targets) {
 
 	public void validate(StateGraph.Nodes nodes) throws GraphStateException {
 		if (!Objects.equals(sourceId(), START) && !nodes.anyMatchById(sourceId())) {
-			throw StateGraph.Errors.missingNodeReferencedByEdge.exception(sourceId());
+			throw Errors.missingNodeReferencedByEdge.exception(sourceId());
 		}
 
 		if (isParallel()) { // check for duplicates targets
@@ -78,7 +79,7 @@ public record Edge(String sourceId, List<EdgeValue> targets) {
 				.map(Map.Entry::getKey)
 				.collect(Collectors.toSet());
 			if (!duplicates.isEmpty()) {
-				throw StateGraph.Errors.duplicateEdgeTargetError.exception(sourceId(), duplicates);
+				throw Errors.duplicateEdgeTargetError.exception(sourceId(), duplicates);
 			}
 		}
 
@@ -91,18 +92,18 @@ public record Edge(String sourceId, List<EdgeValue> targets) {
 	private void validate(EdgeValue target, StateGraph.Nodes nodes) throws GraphStateException {
 		if (target.id() != null) {
 			if (!Objects.equals(target.id(), StateGraph.END) && !nodes.anyMatchById(target.id())) {
-				throw StateGraph.Errors.missingNodeReferencedByEdge.exception(target.id());
+				throw Errors.missingNodeReferencedByEdge.exception(target.id());
 			}
 		}
 		else if (target.value() != null) {
 			for (String nodeId : target.value().mappings().values()) {
 				if (!Objects.equals(nodeId, StateGraph.END) && !nodes.anyMatchById(nodeId)) {
-					throw StateGraph.Errors.missingNodeInEdgeMapping.exception(sourceId(), nodeId);
+					throw Errors.missingNodeInEdgeMapping.exception(sourceId(), nodeId);
 				}
 			}
 		}
 		else {
-			throw StateGraph.Errors.invalidEdgeTarget.exception(sourceId());
+			throw Errors.invalidEdgeTarget.exception(sourceId());
 		}
 
 	}

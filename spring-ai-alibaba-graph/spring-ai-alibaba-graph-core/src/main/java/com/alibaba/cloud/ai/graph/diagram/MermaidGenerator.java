@@ -6,6 +6,7 @@ import com.alibaba.cloud.ai.graph.DiagramGenerator;
 import static com.alibaba.cloud.ai.graph.StateGraph.END;
 import static com.alibaba.cloud.ai.graph.StateGraph.START;
 import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 
 /**
  * This class represents a MermaidGenerator that extends DiagramGenerator. It generates a
@@ -29,8 +30,8 @@ public class MermaidGenerator extends DiagramGenerator {
 			;
 		}
 		else {
-			ctx.sb()
-				.append(format("---\ntitle: %s\n---\n", ctx.title()))
+			ofNullable(ctx.title()).map(title -> ctx.sb().append(format("---\ntitle: %s\n---\n", title)))
+				.orElseGet(ctx::sb)
 				.append("flowchart TD\n")
 				.append(format("\t%s((start))\n", START))
 				.append(format("\t%s((stop))\n", END));

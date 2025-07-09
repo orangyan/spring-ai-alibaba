@@ -12,6 +12,8 @@ public class BranchNodeData extends NodeData {
 
 	private List<Case> cases;
 
+	private String outputKey;
+
 	public BranchNodeData() {
 	}
 
@@ -25,6 +27,15 @@ public class BranchNodeData extends NodeData {
 
 	public BranchNodeData setCases(List<Case> cases) {
 		this.cases = cases;
+		return this;
+	}
+
+	public String getOutputKey() {
+		return outputKey;
+	}
+
+	public BranchNodeData setOutputKey(String outputKey) {
+		this.outputKey = outputKey;
 		return this;
 	}
 

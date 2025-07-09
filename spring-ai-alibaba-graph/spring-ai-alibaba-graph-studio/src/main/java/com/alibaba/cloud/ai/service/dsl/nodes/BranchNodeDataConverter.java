@@ -1,6 +1,7 @@
 
 package com.alibaba.cloud.ai.service.dsl.nodes;
 
+import com.alibaba.cloud.ai.model.Variable;
 import com.alibaba.cloud.ai.model.VariableSelector;
 import com.alibaba.cloud.ai.model.VariableType;
 import com.alibaba.cloud.ai.model.workflow.Case;
@@ -10,7 +11,10 @@ import com.alibaba.cloud.ai.service.dsl.AbstractNodeDataConverter;
 import com.alibaba.cloud.ai.service.dsl.DSLDialectType;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,7 +65,11 @@ public class BranchNodeDataConverter extends AbstractNodeDataConverter<BranchNod
 							.setConditions(conditions));
 					}
 				}
-				return new BranchNodeData(List.of(), List.of()).setCases(cases);
+
+				// outputKey
+				String outputKey = (String) data.get("output_key");
+
+				return new BranchNodeData(List.of(), List.of()).setCases(cases).setOutputKey(outputKey);
 			}
 
 			@Override
@@ -95,6 +103,27 @@ public class BranchNodeDataConverter extends AbstractNodeDataConverter<BranchNod
 			this.dialectConverter = dialectConverter;
 		}
 
+	}
+
+	@Override
+	public String generateVarName(int count) {
+		return "branchNode" + count;
+	}
+
+	@Override
+	public void postProcess(BranchNodeData data, String varName) {
+		if (data.getOutputKey() == null) {
+			data.setOutputKey(varName + "_output");
+		}
+
+		List<Variable> outs = new ArrayList<>();
+		outs.add(new Variable(data.getOutputKey(), VariableType.STRING.value()));
+		data.setOutputs(outs);
+	}
+
+	@Override
+	public Stream<Variable> extractWorkflowVars(BranchNodeData data) {
+		return data.getOutputs().stream();
 	}
 
 }

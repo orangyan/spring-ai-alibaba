@@ -23,6 +23,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.alibaba.cloud.ai.example.manus.config.ManusProperties;
+import com.alibaba.cloud.ai.example.manus.tool.innerStorage.SmartContentSavingService;
+import com.alibaba.cloud.ai.example.manus.tool.filesystem.UnifiedDirectoryManager;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
@@ -46,8 +50,91 @@ public class ChromeDriverService {
 
 	private ManusProperties manusProperties;
 
-	public ChromeDriverService(ManusProperties manusProperties) {
+	private SmartContentSavingService innerStorageService;
+
+	private UnifiedDirectoryManager unifiedDirectoryManager;
+
+	// Initialize ObjectMapper instance
+	private static final ObjectMapper objectMapper = new ObjectMapper();
+
+	/**
+	 * Shared directory for storing cookies
+	 */
+	/**
+	 * Shared directory for storing cookies
+	 */
+	private String sharedDir;
+
+	/**
+	 * Get current shared directory
+	 */
+	public String getSharedDir() {
+		return sharedDir;
+	}
+
+	/**
+	 * Save all cookies from drivers to global shared directory (cookies.json)
+	 */
+	public void saveCookiesToSharedDir() {
+		// Get the first available driver
+		DriverWrapper driver = drivers.values().stream().findFirst().orElse(null);
+		if (driver == null) {
+			log.warn("No driver found for saving cookies");
+			return;
+		}
+		try {
+			List<com.microsoft.playwright.options.Cookie> cookies = driver.getCurrentPage().context().cookies();
+			String cookieFile = sharedDir + "/cookies.json";
+			try (java.io.FileWriter writer = new java.io.FileWriter(cookieFile)) {
+				writer.write(objectMapper.writeValueAsString(cookies));
+			}
+			log.info("Cookies saved to {}", cookieFile);
+		}
+		catch (Exception e) {
+			log.error("Failed to save cookies", e);
+		}
+	}
+
+	/**
+	 * Load cookies from global shared directory to all drivers
+	 */
+	public void loadCookiesFromSharedDir() {
+		String cookieFile = sharedDir + "/cookies.json";
+		java.io.File file = new java.io.File(cookieFile);
+		if (!file.exists()) {
+			log.warn("Cookie file does not exist: {}", cookieFile);
+			return;
+		}
+		try (java.io.FileReader reader = new java.io.FileReader(cookieFile)) {
+			// Replace FastJSON's JSON.parseArray with Jackson's objectMapper.readValue
+			List<com.microsoft.playwright.options.Cookie> cookies = objectMapper.readValue(reader,
+					new TypeReference<List<com.microsoft.playwright.options.Cookie>>() {
+					});
+			for (DriverWrapper driver : drivers.values()) {
+				driver.getCurrentPage().context().addCookies(cookies);
+			}
+			log.info("Cookies loaded from {} to all drivers", cookieFile);
+		}
+		catch (Exception e) {
+			log.error("Failed to load cookies for all drivers", e);
+		}
+	}
+
+	public ChromeDriverService(ManusProperties manusProperties, SmartContentSavingService innerStorageService,
+			UnifiedDirectoryManager unifiedDirectoryManager) {
 		this.manusProperties = manusProperties;
+		this.innerStorageService = innerStorageService;
+		this.unifiedDirectoryManager = unifiedDirectoryManager;
+		// Use UnifiedDirectoryManager to get the shared directory for playwright
+		try {
+			java.nio.file.Path playwrightDir = unifiedDirectoryManager.getWorkingDirectory().resolve("playwright");
+			unifiedDirectoryManager.ensureDirectoryExists(playwrightDir);
+			this.sharedDir = playwrightDir.toString();
+		}
+		catch (java.io.IOException e) {
+			log.error("Failed to create playwright directory", e);
+			this.sharedDir = unifiedDirectoryManager.getWorkingDirectory().resolve("playwright").toString();
+		}
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			log.info("JVM shutting down - cleaning up Playwright processes");
 			cleanupAllPlaywrightProcesses();
@@ -71,8 +158,18 @@ public class ChromeDriverService {
 				return currentDriver;
 			}
 			log.info("Creating new Playwright Browser instance for planId: {}", planId);
-			currentDriver = createNewDriver();
-			drivers.put(planId, currentDriver);
+			currentDriver = createNewDriver(); // createNewDriver will now pass sharedDir
+			if (currentDriver != null) { // Check if driver creation was successful
+				drivers.put(planId, currentDriver);
+			}
+			else {
+				// Handle the case where driver creation failed, e.g., log an error or
+				// throw an exception
+				log.error("Failed to create new driver for planId: {}. createNewDriver returned null.", planId);
+				// Optionally throw an exception to indicate failure to the caller
+				// throw new RuntimeException("Failed to create new driver for planId: " +
+				// planId);
+			}
 		}
 		finally {
 			driverLock.unlock();
@@ -107,25 +204,28 @@ public class ChromeDriverService {
 			}
 			BrowserType.LaunchOptions options = new BrowserType.LaunchOptions();
 
-			// 基础配置
+			// Basic configuration
 			options.setArgs(Arrays.asList("--remote-allow-origins=*", "--disable-blink-features=AutomationControlled",
 					"--disable-infobars", "--disable-notifications", "--disable-dev-shm-usage",
-					"--lang=zh-CN,zh,en-US,en", "--user-agent=" + getRandomUserAgent(), "--window-size=1920,1080" // 默认窗口大小
+					"--lang=zh-CN,zh,en-US,en", "--user-agent=" + getRandomUserAgent(), "--window-size=1920,1080" // Default
+																													// window
+																													// size
 			));
 
-			// 根据配置决定是否使用 headless 模式
+			// Decide whether to use headless mode based on configuration
 			if (manusProperties.getBrowserHeadless()) {
-				log.info("启用 Playwright headless 模式");
+				log.info("Enable Playwright headless mode");
 				options.setHeadless(true);
 			}
 			else {
-				log.info("启用 Playwright 非 headless 模式");
+				log.info("Enable Playwright non-headless mode");
 				options.setHeadless(false);
 			}
 
 			Browser browser = playwright.chromium().launch(options);
 			log.info("Created new Playwright Browser instance with anti-detection");
-			return new DriverWrapper(playwright, browser, browser.newPage());
+			// Pass the sharedDir to the DriverWrapper constructor
+			return new DriverWrapper(playwright, browser, browser.newPage(), this.sharedDir);
 		}
 		catch (Exception e) {
 			if (playwright != null) {
@@ -161,6 +261,14 @@ public class ChromeDriverService {
 
 	public ManusProperties getManusProperties() {
 		return manusProperties;
+	}
+
+	public SmartContentSavingService getInnerStorageService() {
+		return innerStorageService;
+	}
+
+	public UnifiedDirectoryManager getUnifiedDirectoryManager() {
+		return unifiedDirectoryManager;
 	}
 
 }

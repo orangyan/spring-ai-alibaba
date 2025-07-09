@@ -45,8 +45,6 @@ public class CodeUtils {
 
 	private static final int DEFAULT_TIMEOUT = 600;
 
-	public static final String WORKING_DIR = Paths.get(System.getProperty("user.dir"), "extensions").toString();
-
 	public static List<Pair<String, String>> extractCode(String text, boolean detectSingleLineCode) {
 		List<Pair<String, String>> extracted = new ArrayList<>();
 		String content = contentStr(text);
@@ -115,7 +113,7 @@ public class CodeUtils {
 			filename = String.format("tmp_code_%s.%s", code_hash, lang.startsWith("python") ? "py" : lang);
 		}
 		if (workDir == null) {
-			workDir = WORKING_DIR;
+			workDir = System.getProperty("user.dir");
 		}
 		String filepath = Paths.get(workDir, filename).toString();
 		String file_dir = Paths.get(filepath).getParent().toString();

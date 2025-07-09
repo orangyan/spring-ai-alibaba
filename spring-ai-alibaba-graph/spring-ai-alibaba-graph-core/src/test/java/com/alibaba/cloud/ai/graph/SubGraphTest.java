@@ -1,13 +1,11 @@
 
 package com.alibaba.cloud.ai.graph;
 
-import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
-import com.alibaba.cloud.ai.graph.action.AsyncNodeActionWithConfig;
+import com.alibaba.cloud.ai.graph.action.*;
 import com.alibaba.cloud.ai.graph.checkpoint.config.SaverConfig;
 import com.alibaba.cloud.ai.graph.checkpoint.constant.SaverConstant;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
-import com.alibaba.cloud.ai.graph.state.AppenderChannel;
 import com.alibaba.cloud.ai.graph.state.strategy.AppendStrategy;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.LogManager;
@@ -68,50 +67,19 @@ public class SubGraphTest {
 	}
 
 	/**
-	 * Remove an element from the list based on the provided RemoveIdentifier.
-	 * @param result The list from which elements will be removed.
-	 * @param removeIdentifier An identifier defining how to find the element to remove.
-	 */
-	private static void removeFromList(List<Object> result, AppenderChannel.RemoveIdentifier<Object> removeIdentifier) {
-		for (int i = 0; i < result.size(); i++) {
-			if (removeIdentifier.compareTo(result.get(i), i) == 0) {
-				result.remove(i);
-				break;
-			}
-		}
-	}
-
-	/**
-	 * Evaluate removal operations on a list based on the values provided.
-	 * @param oldValues Previous list values.
-	 * @param newValues New values potentially including removal identifiers.
-	 * @return An object encapsulating the results of removal evaluation.
-	 */
-	private static AppenderChannel.RemoveData<Object> evaluateRemoval(List<Object> oldValues, List<?> newValues) {
-
-		final var result = new AppenderChannel.RemoveData<>(oldValues, newValues);
-
-		newValues.stream().filter(value -> value instanceof AppenderChannel.RemoveIdentifier<?>).forEach(value -> {
-			result.newValues().remove(value);
-			var removeIdentifier = (AppenderChannel.RemoveIdentifier<Object>) value;
-			removeFromList(result.oldValues(), removeIdentifier);
-
-		});
-		return result;
-
-	}
-
-	/**
 	 * Get an initialized OverAllState instance with predefined key strategies.
 	 * @return Initialized OverAllState object.
 	 */
-	private static OverAllStateFactory createOverAllStateFactory() {
-		return () -> new OverAllState().input(Map.of())
-			.registerKeyAndStrategy("a", (o, o2) -> o2)
-			.registerKeyAndStrategy("b", (o, o2) -> o2)
-			.registerKeyAndStrategy("c", (o, o2) -> o2)
-			.registerKeyAndStrategy("steps", (o, o2) -> o2)
-			.registerKeyAndStrategy("messages", new AppendStrategy());
+	private static KeyStrategyFactory createKeyStrategyFactory() {
+		return () -> {
+			Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();
+			keyStrategyMap.put("a", (o, o2) -> o);
+			keyStrategyMap.put("b", (o, o2) -> o2);
+			keyStrategyMap.put("c", (o, o2) -> o2);
+			keyStrategyMap.put("steps", (o, o2) -> o2);
+			keyStrategyMap.put("messages", new AppendStrategy());
+			return keyStrategyMap;
+		};
 	}
 
 	/**
@@ -126,7 +94,7 @@ public class SubGraphTest {
 			.addEdge("B1", "B2")
 			.addEdge("B2", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addEdge(START, "A")
@@ -155,7 +123,7 @@ public class SubGraphTest {
 			.addEdge("B1", "B2")
 			.addEdge("B2", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addConditionalEdges(START, edge_async(state -> "a"), Map.of("a", "A", "b", "B"))
@@ -193,7 +161,7 @@ public class SubGraphTest {
 			.addConditionalEdges("B2", edge_async(state -> "c"), Map.of(END, END, "c", "C"))
 			.addEdge("C", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addConditionalEdges(START, edge_async(state -> "a"), Map.of("a", "A", "b", "B"))
@@ -231,7 +199,7 @@ public class SubGraphTest {
 			.addConditionalEdges("B2", edge_async(state -> "c"), Map.of(END, END, "c", "C"))
 			.addEdge("C", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addConditionalEdges(START, edge_async(state -> "a"), Map.of("a", "A", "b", "B"))
@@ -306,7 +274,7 @@ public class SubGraphTest {
 			.addConditionalEdges("B2", edge_async(state -> "c"), Map.of(END, END, "c", "C"))
 			.addEdge("C", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addConditionalEdges(START, edge_async(state -> "a"), Map.of("a", "A", "b", "B"))
@@ -344,7 +312,7 @@ public class SubGraphTest {
 			.addConditionalEdges("B2", edge_async(state -> "c"), Map.of(END, END, "c", "C"))
 			.addEdge("C", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("A", _makeNode("A"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("A", _makeNode("A"))
 			.addNode("B", workflowChild)
 			.addNode("C", _makeNode("C"))
 			.addNode("C1", _makeNode("C1"))
@@ -423,7 +391,7 @@ public class SubGraphTest {
 			.addEdge("step_2", "step_3")
 			.addEdge("step_3", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("step_1", _makeNode("step1"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("step_1", _makeNode("step1"))
 			.addNode("step_2", _makeNode("step2"))
 			.addNode("step_3", _makeNode("step3"))
 			.addNode("subgraph", workflowChild)
@@ -454,7 +422,7 @@ public class SubGraphTest {
 		SaverConfig saver = SaverConfig.builder().register(SaverConstant.MEMORY, new MemorySaver()).build();
 
 		var compileConfig = CompileConfig.builder().saverConfig(saver).build();
-		var workflowChild = new StateGraph(createOverAllStateFactory()).addNode("step_1", _makeNode("child:step1"))
+		var workflowChild = new StateGraph(createKeyStrategyFactory()).addNode("step_1", _makeNode("child:step1"))
 			.addNode("step_2", _makeNode("child:step2"))
 			.addNode("step_3", _makeNode("child:step3"))
 			.addEdge(START, "step_1")
@@ -462,7 +430,7 @@ public class SubGraphTest {
 			.addEdge("step_2", "step_3")
 			.addEdge("step_3", END);
 
-		var workflowParent = new StateGraph(createOverAllStateFactory()).addNode("step_1", _makeNode("step1"))
+		var workflowParent = new StateGraph(createKeyStrategyFactory()).addNode("step_1", _makeNode("step1"))
 			.addNode("step_2", _makeNode("step2"))
 			.addNode("step_3", _makeNode("step3"))
 			.addNode("subgraph", AsyncNodeActionWithConfig.node_async((t, config) -> {
@@ -483,6 +451,59 @@ public class SubGraphTest {
 			.map(NodeOutput::state);
 
 		assertTrue(result.isPresent());
+	}
+
+	@Test
+	public void testCommandNodeSubGraph() throws Exception {
+		StateGraph childGraph = new StateGraph(() -> {
+			HashMap<String, KeyStrategy> stringKeyStrategyHashMap = new HashMap<>();
+			stringKeyStrategyHashMap.put("messages", new AppendStrategy());
+			return stringKeyStrategyHashMap;
+		});
+		childGraph.addNode("node1", _makeNode("node1"));
+		childGraph.addNode("node2", _makeNode("node2"));
+		CommandAction commandAction = new CommandAction() {
+			@Override
+			public Command apply(OverAllState state, RunnableConfig config) throws Exception {
+				return new Command("node1", Map.of("messages", "go to node 1"));
+			}
+		};
+		childGraph.addNode("commandNode", AsyncCommandAction.node_async(commandAction),
+				Map.of("node1", "node1", "node2", "node2"));
+
+		childGraph.addEdge(START, "commandNode");
+		childGraph.addEdge("node1", "node2");
+		childGraph.addEdge("node2", END);
+
+		StateGraph parentGraph = new StateGraph(() -> {
+			HashMap<String, KeyStrategy> stringKeyStrategyHashMap = new HashMap<>();
+			stringKeyStrategyHashMap.put("messages", new AppendStrategy());
+			return stringKeyStrategyHashMap;
+		});
+
+		parentGraph.addNode("p_node1", _makeNode("p_node1"));
+		parentGraph.addNode("p_node2", _makeNode("p_node2"));
+
+		parentGraph.addNode("c_graph", childGraph);
+
+		parentGraph.addNode("p_command_node", AsyncCommandAction.node_async(new CommandAction() {
+			@Override
+			public Command apply(OverAllState state, RunnableConfig config) throws Exception {
+				return new Command("p_node1", Map.of("messages", "go to p_node1"));
+			}
+		}), Map.of("p_node1", "p_node1", "p_node2", "p_node2"));
+
+		parentGraph.addEdge(START, "p_command_node");
+		parentGraph.addEdge("p_node1", "p_node2");
+		parentGraph.addEdge("p_node2", "c_graph");
+		parentGraph.addEdge("c_graph", END);
+
+		CompiledGraph compile = parentGraph.compile();
+		System.out.println(compile.getGraph(GraphRepresentation.Type.PLANTUML).content());
+		OverAllState state = compile.invoke(Map.of()).orElseThrow();
+		assertEquals(
+				Map.of("messages", List.of("go to p_node1", "p_node1", "p_node2", "go to node 1", "node1", "node2")),
+				state.data());
 	}
 
 }

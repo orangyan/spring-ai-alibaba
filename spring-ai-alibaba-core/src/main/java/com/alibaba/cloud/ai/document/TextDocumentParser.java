@@ -5,10 +5,9 @@ import org.springframework.util.Assert;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * TextDocumentParser类实现了DocumentParser接口，用于解析文本类型的文档
@@ -20,7 +19,7 @@ public class TextDocumentParser implements DocumentParser {
 	private final Charset charset;
 
 	public TextDocumentParser() {
-		this(UTF_8);
+		this(StandardCharsets.UTF_8);
 	}
 
 	public TextDocumentParser(Charset charset) {

@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi.ChatCompletionFinishReason;
 
+import com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
@@ -24,8 +25,6 @@ import org.springframework.ai.rag.generation.augmentation.QueryAugmenter;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
-
-import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.RETRIEVED_DOCUMENTS;
 
 /**
  * DashScope文档检索建议器类，用于在调用DashScope API进行文档检索时提供额外的处理逻辑
@@ -128,7 +127,7 @@ public class DashScopeDocumentRetrievalAdvisor implements BaseAdvisor {
 			documentMap.put("[%d]".formatted(indexId), document);
 		}
 
-		context.put(RETRIEVED_DOCUMENTS, documentMap);
+		context.put(DashScopeApiConstants.RETRIEVED_DOCUMENTS, documentMap);
 
 		Query augmentedQuery = this.queryAugmenter.augment(originalQuery, documents);
 
@@ -162,7 +161,8 @@ public class DashScopeDocumentRetrievalAdvisor implements BaseAdvisor {
 						content = result.getOutput().getText();
 					}
 
-					Map<String, Document> documentMap = (Map<String, Document>) context.get(RETRIEVED_DOCUMENTS);
+					Map<String, Document> documentMap = (Map<String, Document>) context
+						.get(DashScopeApiConstants.RETRIEVED_DOCUMENTS);
 					List<Document> referencedDocuments = new ArrayList<>();
 
 					Matcher refMatcher = RAG_REFERENCE_PATTERN.matcher(content);
@@ -183,7 +183,8 @@ public class DashScopeDocumentRetrievalAdvisor implements BaseAdvisor {
 				}
 			}
 		}
-		chatResponseBuilder.metadata(RETRIEVED_DOCUMENTS, response.context().get(RETRIEVED_DOCUMENTS));
+		chatResponseBuilder.metadata(DashScopeApiConstants.RETRIEVED_DOCUMENTS,
+				response.context().get(DashScopeApiConstants.RETRIEVED_DOCUMENTS));
 		return ChatClientResponse.builder().chatResponse(chatResponseBuilder.build()).context(context).build();
 	}
 

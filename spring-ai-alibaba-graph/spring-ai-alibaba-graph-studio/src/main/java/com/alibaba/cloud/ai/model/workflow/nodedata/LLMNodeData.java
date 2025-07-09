@@ -1,3 +1,18 @@
+/*
+ * Copyright 2024-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.alibaba.cloud.ai.model.workflow.nodedata;
 
@@ -7,6 +22,7 @@ import com.alibaba.cloud.ai.model.VariableType;
 import com.alibaba.cloud.ai.model.workflow.NodeData;
 
 import java.util.List;
+import java.util.Map;
 
 public class LLMNodeData extends NodeData {
 
@@ -17,6 +33,28 @@ public class LLMNodeData extends NodeData {
 	private List<PromptTemplate> promptTemplate;
 
 	private MemoryConfig memoryConfig;
+
+	private String systemPromptTemplate;
+
+	private String userPromptTemplate;
+
+	private String systemPromptTemplateKey;
+
+	private String userPromptTemplateKey;
+
+	private Map<String, Object> params;
+
+	private String paramsKey;
+
+	private List<Message> messages;
+
+	private String messagesKey;
+
+	private List<Advisor> advisors;
+
+	private List<ToolCallback> toolCallbacks;
+
+	private String outputKey;
 
 	public LLMNodeData() {
 	}
@@ -52,6 +90,105 @@ public class LLMNodeData extends NodeData {
 		return this;
 	}
 
+	public String getSystemPromptTemplate() {
+		return systemPromptTemplate;
+	}
+
+	public LLMNodeData setSystemPromptTemplate(String systemPromptTemplate) {
+		this.systemPromptTemplate = systemPromptTemplate;
+		return this;
+	}
+
+	public String getUserPromptTemplate() {
+		return userPromptTemplate;
+	}
+
+	public LLMNodeData setUserPromptTemplate(String userPromptTemplate) {
+		this.userPromptTemplate = userPromptTemplate;
+		return this;
+	}
+
+	public String getSystemPromptTemplateKey() {
+		return systemPromptTemplateKey;
+	}
+
+	public LLMNodeData setSystemPromptTemplateKey(String systemPromptTemplateKey) {
+		this.systemPromptTemplateKey = systemPromptTemplateKey;
+		return this;
+	}
+
+	public String getUserPromptTemplateKey() {
+		return userPromptTemplateKey;
+	}
+
+	public LLMNodeData setUserPromptTemplateKey(String userPromptTemplateKey) {
+		this.userPromptTemplateKey = userPromptTemplateKey;
+		return this;
+	}
+
+	public Map<String, Object> getParams() {
+		return params;
+	}
+
+	public LLMNodeData setParams(Map<String, Object> params) {
+		this.params = params;
+		return this;
+	}
+
+	public String getParamsKey() {
+		return paramsKey;
+	}
+
+	public LLMNodeData setParamsKey(String paramsKey) {
+		this.paramsKey = paramsKey;
+		return this;
+	}
+
+	public List<Message> getMessages() {
+		return messages;
+	}
+
+	public LLMNodeData setMessages(List<Message> messages) {
+		this.messages = messages;
+		return this;
+	}
+
+	public String getMessagesKey() {
+		return messagesKey;
+	}
+
+	public LLMNodeData setMessagesKey(String messagesKey) {
+		this.messagesKey = messagesKey;
+		return this;
+	}
+
+	public List<Advisor> getAdvisors() {
+		return advisors;
+	}
+
+	public LLMNodeData setAdvisors(List<Advisor> advisors) {
+		this.advisors = advisors;
+		return this;
+	}
+
+	public List<ToolCallback> getToolCallbacks() {
+		return toolCallbacks;
+	}
+
+	public LLMNodeData setToolCallbacks(List<ToolCallback> toolCallbacks) {
+		this.toolCallbacks = toolCallbacks;
+		return this;
+	}
+
+	public String getOutputKey() {
+		return outputKey;
+	}
+
+	public LLMNodeData setOutputKey(String outputKey) {
+		this.outputKey = outputKey;
+		return this;
+	}
+
 	public static class PromptTemplate {
 
 		private String role;
@@ -66,15 +203,6 @@ public class LLMNodeData extends NodeData {
 			this.text = text;
 		}
 
-		public String getText() {
-			return text;
-		}
-
-		public PromptTemplate setText(String text) {
-			this.text = text;
-			return this;
-		}
-
 		public String getRole() {
 			return role;
 		}
@@ -84,13 +212,18 @@ public class LLMNodeData extends NodeData {
 			return this;
 		}
 
+		public String getText() {
+			return text;
+		}
+
+		public PromptTemplate setText(String text) {
+			this.text = text;
+			return this;
+		}
+
 	}
 
 	public static class ModelConfig {
-
-		public static final String MODE_COMPLETION = "completion";
-
-		public static final String MODE_CHAT = "chat";
 
 		private String mode;
 
@@ -222,6 +355,126 @@ public class LLMNodeData extends NodeData {
 		public MemoryConfig setLastMessageTemplate(String lastMessageTemplate) {
 			this.lastMessageTemplate = lastMessageTemplate;
 			return this;
+		}
+
+	}
+
+	public static class Message {
+
+		private String role;
+
+		private String content;
+
+		public Message() {
+		}
+
+		public Message(String role, String content) {
+			this.role = role;
+			this.content = content;
+		}
+
+		public String getRole() {
+			return role;
+		}
+
+		public Message setRole(String role) {
+			this.role = role;
+			return this;
+		}
+
+		public String getContent() {
+			return content;
+		}
+
+		public Message setContent(String content) {
+			this.content = content;
+			return this;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("new Message(\"%s\", \"%s\")", role == null ? "" : role.replace("\"", "\\\""),
+					content == null ? "" : content.replace("\"", "\\\""));
+		}
+
+	}
+
+	public static class Advisor {
+
+		private String name;
+
+		private String prompt;
+
+		public Advisor() {
+		}
+
+		public Advisor(String name, String prompt) {
+			this.name = name;
+			this.prompt = prompt;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public Advisor setName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public String getPrompt() {
+			return prompt;
+		}
+
+		public Advisor setPrompt(String prompt) {
+			this.prompt = prompt;
+			return this;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("new Advisor(\"%s\", \"%s\")", name == null ? "" : name.replace("\"", "\\\""),
+					prompt == null ? "" : prompt.replace("\"", "\\\""));
+		}
+
+	}
+
+	public static class ToolCallback {
+
+		private String name;
+
+		private Map<String, Object> args;
+
+		public ToolCallback() {
+		}
+
+		public ToolCallback(String name, Map<String, Object> args) {
+			this.name = name;
+			this.args = args;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public ToolCallback setName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Map<String, Object> getArgs() {
+			return args;
+		}
+
+		public ToolCallback setArgs(Map<String, Object> args) {
+			this.args = args;
+			return this;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("new ToolCallback(\"%s\", %s)", name == null ? "" : name.replace("\"", "\\\""),
+					args == null ? "Map.of()" : args.toString().replace("\"", "\\\""));
 		}
 
 	}

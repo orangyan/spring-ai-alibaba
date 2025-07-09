@@ -10,7 +10,10 @@ import com.alibaba.cloud.ai.service.dsl.AbstractNodeDataConverter;
 import com.alibaba.cloud.ai.service.dsl.DSLDialectType;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @Component
@@ -85,6 +88,11 @@ public class CodeNodeDataConverter extends AbstractNodeDataConverter<CodeNodeDat
 			this.dialectConverter = dialectConverter;
 		}
 
+	}
+
+	@Override
+	public String generateVarName(int count) {
+		return "codeNode" + count;
 	}
 
 }

@@ -1,4 +1,18 @@
-
+/*
+ * Copyright 2024-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.cloud.ai.dashscope.api;
 
 import com.alibaba.cloud.ai.dashscope.audio.DashScopeAudioTranscriptionOptions;
@@ -23,21 +37,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.net.URL;
 
-import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.DEFAULT_BASE_URL;
-
-/**
- * DashScope 音频转写 API 客户端类
- *
- * 提供与阿里云 DashScope 服务的音频转写功能交互，支持：
- * - 音频文件转写
- * - 实时音频流转写
- * - 异步任务处理
- * - 任务结果查询
- *
- * @author nuocheng.lxm
- * @author yuluo
- * @since 1.0.0-M2
- */
 public class DashScopeAudioTranscriptionApi {
 
 	private static final Logger logger = LoggerFactory.getLogger(DashScopeAudioTranscriptionApi.class);
@@ -51,12 +50,12 @@ public class DashScopeAudioTranscriptionApi {
 	}
 
 	public DashScopeAudioTranscriptionApi(String apiKey, String workSpaceId) {
-		this(DEFAULT_BASE_URL, apiKey, workSpaceId, DashScopeApiConstants.DEFAULT_WEBSOCKET_URL, RestClient.builder(),
-				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+		this(DashScopeApiConstants.DEFAULT_BASE_URL, apiKey, workSpaceId, DashScopeApiConstants.DEFAULT_WEBSOCKET_URL,
+				RestClient.builder(), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 	}
 
 	public DashScopeAudioTranscriptionApi(String apiKey, String workSpaceId, String websocketUrl) {
-		this(DEFAULT_BASE_URL, apiKey, workSpaceId, websocketUrl, RestClient.builder(),
+		this(DashScopeApiConstants.DEFAULT_BASE_URL, apiKey, workSpaceId, websocketUrl, RestClient.builder(),
 				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 	}
 

@@ -1,34 +1,118 @@
 server:
   port: 8080
-
 spring:
   application:
     name: spring-ai-alibaba-deepresearch
-
+  # Redis 配置
+  data:
+    redis:
+      enabled: false
+      host: localhost
+      port: 6379
+      password: ${REDIS-PASSWORD}
+      timeout: 3000 # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
   ai:
-    openai:
-      api-key: ${DASHSCOPE_API_KEY}
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      chat:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+      base-url: https://dashscope.aliyuncs.com
+      embedding:
         options:
-          model: qwen-max
+          model: text-embedding-v1
+
     mcp:
       client:
-        sse:
-          servers-configuration: classpath:mcp-servers.json
-        stdio:
-          servers-configuration: classpath:mcp-servers.json
-        toolcallback:
-          enabled: true
+        enabled: false
+        type: async
     alibaba:
       toolcalling:
+        baidu:
+          search:
+            enabled: true
         tavilysearch:
-          enabled: true
           api-key: ${TAVILY_API_KEY}
-      deepreserch:
-        python-home: ${PYTHON_HOME}
-#        background-investigation-type: tool_calls
-
+          enabled: true
+        jinacrawler:
+          enabled: false
+          api-key: ${JINA_API_KEY}
+        serpapi:
+          api-key: ${SERPAPI_KEY}
+          enabled: true
+        aliyunaisearch:
+          api-key: ${ALIYUN_AI_SEARCH_API_KEY}
+          base-url: ${ALIYUN_AI_SEARCH_BASE_URL}
+          enabled: true
+      deepresearch:
+        # 定义项目可以使用的搜索引擎
+        search-list:
+          - tavily
+          - aliyun
+          - baidu
+          - serpapi
+        mcp:
+          enabled: false
+          config-location: classpath:mcp-config.json
+        parallel-node-count:
+          researcher: 5
+          coder: 5
+        rag:
+          enabled: false
+          # 可以设置为 'simple' 或 'elasticsearch'
+          vector-store-type: simple
+          data:
+            # 启动时加载 classpath下data目录中的所有文件
+            locations:
+              - "classpath:/data/"
+        # 报告导出路径配置
+        export:
+          path: ${AI_DEEPRESEARCH_EXPORT_PATH}
+# OpenTelemetry Observation configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      # health status check with detailed messages
+      show-details: always
+  tracing:
+    sampling:
+      # trace information with every request
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true
+otel:
+  service:
+    name: spring-ai-alibaba-deepresearch-langfuse
+  resource:
+    attributes:
+      deployment.environment: development
+  # configure exporter
+  traces:
+    exporter: otlp
+    sampler: always_on
+  metrics:
+    exporter: otlp
+  # logs exportation inhibited for langfuse currently cannot support
+  logs:
+    exporter: none
+  exporter:
+    otlp:
+      # OpenTelemetry exporter endpoint configuration. For details, refer to the official Langfuse documentation: https://langfuse.com/docs/opentelemetry/get-started
+      endpoint: "https://us.cloud.langfuse.com/api/public/otel" # 🇺🇸 US data region
+      # endpoint: "https://cloud.langfuse.com/api/public/otel" # 🇪🇺 EU data region
+      # endpoint: "http://localhost:3000/api/public/otel" # 🏠 Local deployment (>= v3.22.0)
+      headers:
+        # Replace `YOUR_BASE64_ENCODED_CREDENTIALS` with your Base64-encoded `public_key:secret_key`.
+        Authorization: "Basic ${YOUR_BASE64_ENCODED_CREDENTIALS}"
+      protocol: http/protobuf
 logging:
   level:
     com.alibaba.cloud.ai.example.deepresearch: debug

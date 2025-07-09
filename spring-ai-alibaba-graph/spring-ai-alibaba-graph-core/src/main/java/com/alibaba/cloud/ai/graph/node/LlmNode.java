@@ -3,6 +3,7 @@ package com.alibaba.cloud.ai.graph.node;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
+import com.alibaba.cloud.ai.graph.streaming.StreamingChatGenerator;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.Message;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class LlmNode implements NodeAction {
 
@@ -45,11 +47,13 @@ public class LlmNode implements NodeAction {
 
 	private ChatClient chatClient;
 
+	private Boolean stream = Boolean.FALSE;
+
 	public LlmNode() {
 	}
 
 	public LlmNode(String systemPrompt, String prompt, Map<String, Object> params, List<Message> messages,
-			List<Advisor> advisors, List<ToolCallback> toolCallbacks, ChatClient chatClient) {
+			List<Advisor> advisors, List<ToolCallback> toolCallbacks, ChatClient chatClient, boolean stream) {
 		this.systemPrompt = systemPrompt;
 		this.userPrompt = prompt;
 		this.params = params;
@@ -57,21 +61,34 @@ public class LlmNode implements NodeAction {
 		this.advisors = advisors;
 		this.toolCallbacks = toolCallbacks;
 		this.chatClient = chatClient;
+		this.stream = stream;
 	}
 
 	@Override
 	public Map<String, Object> apply(OverAllState state) throws Exception {
 		initNodeWithState(state);
 
-		// add streaming support later
-		ChatResponse response = call();
-
-		Map<String, Object> updatedState = new HashMap<>();
-		updatedState.put("messages", response.getResult().getOutput());
-		if (StringUtils.hasLength(this.outputKey)) {
-			updatedState.put(this.outputKey, response.getResult().getOutput());
+		// add streaming support
+		if (Boolean.TRUE.equals(stream)) {
+			Flux<ChatResponse> chatResponseFlux = stream();
+			var generator = StreamingChatGenerator.builder()
+				.startingNode("llmNode")
+				.startingState(state)
+				.mapResult(response -> Map.of(StringUtils.hasLength(this.outputKey) ? this.outputKey : "messages",
+						Objects.requireNonNull(response.getResult().getOutput())))
+				.build(chatResponseFlux);
+			return Map.of(StringUtils.hasLength(this.outputKey) ? this.outputKey : "messages", generator);
 		}
-		return updatedState;
+		else {
+			ChatResponse response = call();
+
+			Map<String, Object> updatedState = new HashMap<>();
+			updatedState.put("messages", response.getResult().getOutput());
+			if (StringUtils.hasLength(this.outputKey)) {
+				updatedState.put(this.outputKey, response.getResult().getOutput());
+			}
+			return updatedState;
+		}
 	}
 
 	private void initNodeWithState(OverAllState state) {
@@ -210,6 +227,8 @@ public class LlmNode implements NodeAction {
 
 		private List<ToolCallback> toolCallbacks;
 
+		private Boolean stream;
+
 		public Builder userPromptTemplate(String userPromptTemplate) {
 			this.userPromptTemplate = userPromptTemplate;
 			return this;
@@ -270,6 +289,11 @@ public class LlmNode implements NodeAction {
 			return this;
 		}
 
+		public Builder stream(Boolean stream) {
+			this.stream = stream;
+			return this;
+		}
+
 		public LlmNode build() {
 			LlmNode llmNode = new LlmNode();
 			llmNode.systemPrompt = this.systemPromptTemplate;
@@ -279,6 +303,7 @@ public class LlmNode implements NodeAction {
 			llmNode.paramsKey = this.paramsKey;
 			llmNode.messagesKey = this.messagesKey;
 			llmNode.outputKey = this.outputKey;
+			llmNode.stream = this.stream;
 			if (this.params != null) {
 				llmNode.params = this.params;
 			}

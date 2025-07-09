@@ -7,6 +7,7 @@ import com.alibaba.cloud.ai.dashscope.api.DashScopeAgentApi.DashScopeAgentReques
 import com.alibaba.cloud.ai.dashscope.api.DashScopeAgentApi.DashScopeAgentResponse;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeAgentApi.DashScopeAgentRequest.DashScopeAgentRequestInput.DashScopeAgentRequestMessage;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeAgentApi.DashScopeAgentRequest.DashScopeAgentRequestParameters.DashScopeAgentRequestRagOptions;
+import com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -25,8 +26,6 @@ import reactor.core.scheduler.Schedulers;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.alibaba.cloud.ai.dashscope.common.DashScopeApiConstants.*;
 
 /**
  * DashScope低级别代理实现类
@@ -181,9 +180,9 @@ public final class DashScopeAgent extends Agent {
 
 		// 构建元数据
 		Map<String, Object> metadata = new HashMap<>();
-		metadata.put(REQUEST_ID, response.requestId());
-		metadata.put(USAGE, usage);
-		metadata.put(OUTPUT, output);
+		metadata.put(DashScopeApiConstants.REQUEST_ID, response.requestId());
+		metadata.put(DashScopeApiConstants.USAGE, usage);
+		metadata.put(DashScopeApiConstants.OUTPUT, output);
 
 		// 构建助手消息和生成信息
 		var assistantMessage = new AssistantMessage(text, metadata);

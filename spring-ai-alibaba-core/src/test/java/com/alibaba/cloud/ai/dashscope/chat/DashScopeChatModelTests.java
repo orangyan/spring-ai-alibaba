@@ -4,7 +4,6 @@ package com.alibaba.cloud.ai.dashscope.chat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi.ChatCompletion;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi.ChatCompletionChunk;
@@ -68,9 +67,10 @@ class DashScopeChatModelTests {
 	private DashScopeChatOptions defaultOptions;
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws Exception {
 		// Initialize mock objects and test instances
 		dashScopeApi = Mockito.mock(DashScopeApi.class);
+
 		defaultOptions = DashScopeChatOptions.builder()
 			.withModel(TEST_MODEL)
 			.withTemperature(0.7)
@@ -96,7 +96,7 @@ class DashScopeChatModelTests {
 		ChatCompletion chatCompletion = new ChatCompletion(TEST_REQUEST_ID, output, usage);
 		ResponseEntity<ChatCompletion> responseEntity = ResponseEntity.ok(chatCompletion);
 
-		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class))).thenReturn(responseEntity);
+		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class), any())).thenReturn(responseEntity);
 
 		// Execute test
 		ChatResponse response = chatModel.call(prompt);
@@ -132,7 +132,7 @@ class DashScopeChatModelTests {
 		ChatCompletionChunk chunk2 = new ChatCompletionChunk(TEST_REQUEST_ID, output2, null);
 		ChatCompletionChunk chunk3 = new ChatCompletionChunk(TEST_REQUEST_ID, output3, new TokenUsage(10, 5, 15));
 
-		when(dashScopeApi.chatCompletionStream(any(ChatCompletionRequest.class)))
+		when(dashScopeApi.chatCompletionStream(any(ChatCompletionRequest.class), any()))
 			.thenReturn(Flux.just(chunk1, chunk2, chunk3));
 
 		// Execute test
@@ -167,7 +167,7 @@ class DashScopeChatModelTests {
 
 		ChatCompletion completion = new ChatCompletion("test-id", output, usage);
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenReturn(ResponseEntity.ok(completion));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenReturn(ResponseEntity.ok(completion));
 
 		// Test with system message
 		Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
@@ -210,7 +210,7 @@ class DashScopeChatModelTests {
 		ChatCompletionOutput toolOutput = new ChatCompletionOutput(toolCallResponse, List.of(toolChoice));
 		ChatCompletion toolCompletion = new ChatCompletion("test-id", toolOutput, usage);
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenReturn(ResponseEntity.ok(toolCompletion));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenReturn(ResponseEntity.ok(toolCompletion));
 
 		// Test tool call
 		Message message = new UserMessage("What's the weather like?");
@@ -262,7 +262,7 @@ class DashScopeChatModelTests {
 		ChatCompletionChunk chunk3Response = new ChatCompletionChunk("test-id",
 				new ChatCompletionOutput(chunk3, List.of(choice3)), new TokenUsage(15, 25, 40));
 
-		when(dashScopeApi.chatCompletionStream(any()))
+		when(dashScopeApi.chatCompletionStream(any(), any()))
 			.thenReturn(Flux.just(chunk1Response, chunk2Response, chunk3Response));
 
 		Message message = new UserMessage("What's the weather like?");
@@ -279,7 +279,7 @@ class DashScopeChatModelTests {
 	@Test
 	void testErrorHandling() {
 		// Test error handling
-		when(dashScopeApi.chatCompletionEntity(any())).thenThrow(new RuntimeException("API Error"));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenThrow(new RuntimeException("API Error"));
 
 		Message message = new UserMessage("Test message");
 		Prompt prompt = new Prompt(List.of(message));
@@ -295,7 +295,7 @@ class DashScopeChatModelTests {
 		TokenUsage usage = new TokenUsage(0, 0, 0);
 		ChatCompletion completion = new ChatCompletion("test-id", output, usage);
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenReturn(ResponseEntity.ok(completion));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenReturn(ResponseEntity.ok(completion));
 
 		Message message = new UserMessage("Test message");
 		Prompt prompt = new Prompt(List.of(message));
@@ -344,7 +344,7 @@ class DashScopeChatModelTests {
 		ChatCompletion chatCompletion = new ChatCompletion(TEST_REQUEST_ID, output, usage);
 		ResponseEntity<ChatCompletion> responseEntity = ResponseEntity.ok(chatCompletion);
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenReturn(responseEntity);
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenReturn(responseEntity);
 
 		ChatResponse response = chatModel.call(prompt);
 
@@ -368,7 +368,7 @@ class DashScopeChatModelTests {
 		Message message = new UserMessage(TEST_PROMPT);
 		Prompt prompt = new Prompt(List.of(message));
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenThrow(new RuntimeException("Invalid model name"));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenThrow(new RuntimeException("Invalid model name"));
 
 		assertThatThrownBy(() -> invalidModel.call(prompt)).isInstanceOf(RuntimeException.class)
 			.hasMessage("Invalid model name");
@@ -390,7 +390,7 @@ class DashScopeChatModelTests {
 		TokenUsage usage = new TokenUsage(0, 0, 0);
 		ChatCompletion completion = new ChatCompletion("test-id", output, usage);
 
-		when(dashScopeApi.chatCompletionEntity(any())).thenReturn(ResponseEntity.ok(completion));
+		when(dashScopeApi.chatCompletionEntity(any(), any())).thenReturn(ResponseEntity.ok(completion));
 
 		Prompt prompt = new Prompt(List.of(systemMessage, userMessage1, assistantMessage, userMessage2));
 		ChatResponse response = chatModel.call(prompt);

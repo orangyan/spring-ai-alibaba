@@ -30,21 +30,27 @@ public class GetTextAction extends BrowserAction {
 
 	@Override
 	public ToolExecuteResult execute(BrowserRequestVO request) throws Exception {
-		Page page = getCurrentPage(); // 获取 Playwright 的 Page 实例
+		Page page = getCurrentPage(); // Get Playwright Page instance
 		StringBuilder allText = new StringBuilder();
 		for (com.microsoft.playwright.Frame frame : page.frames()) {
 			try {
 				String text = frame.innerText("body");
 				if (text != null && !text.isEmpty()) {
-					allText.append(text).append("\n");
+					allText.append(text).append("\\n");
 				}
 			}
 			catch (Exception e) {
-				// 忽略没有body的frame
+				// Ignore frames without body
 			}
 		}
 		String result = allText.toString().trim();
-		log.info("get_text all frames body is {}", result);
+
+		// Log only first 10 lines for brevity
+		String[] lines = result.split("\n");
+		String logPreview = lines.length > 10 ? String.join("\n", java.util.Arrays.copyOf(lines, 10)) + "\n... (total "
+				+ lines.length + " lines, showing first 10)" : result;
+		log.info("get_text all frames body is {}", logPreview);
+		log.debug("get_text all frames body is {}", result);
 		return new ToolExecuteResult(result);
 	}
 

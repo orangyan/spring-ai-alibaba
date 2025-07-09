@@ -16,10 +16,10 @@ public interface AsyncEdgeAction extends Function<OverAllState, CompletableFutur
 
 	/**
 	 * Applies this action to the given agent state.
-	 * @param t the agent state
+	 * @param state the agent state
 	 * @return a CompletableFuture representing the result of the action
 	 */
-	CompletableFuture<String> apply(OverAllState t);
+	CompletableFuture<String> apply(OverAllState state);
 
 	/**
 	 * Creates an asynchronous edge action from a synchronous edge action.
@@ -27,10 +27,10 @@ public interface AsyncEdgeAction extends Function<OverAllState, CompletableFutur
 	 * @return an asynchronous edge action
 	 */
 	static AsyncEdgeAction edge_async(EdgeAction syncAction) {
-		return t -> {
+		return state -> {
 			CompletableFuture<String> result = new CompletableFuture<>();
 			try {
-				result.complete(syncAction.apply(t));
+				result.complete(syncAction.apply(state));
 			}
 			catch (Exception e) {
 				result.completeExceptionally(e);

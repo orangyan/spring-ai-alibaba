@@ -40,8 +40,8 @@ public class YoudaoTranslateService
 
 	public YoudaoTranslateService(YoudaoTranslateProperties properties, JsonParseTool jsonParseTool,
 			WebClientTool webClientTool) {
-		this.appKey = properties.getAppKey();
-		this.appSecret = properties.getAppSecret();
+		this.appKey = properties.getAppId();
+		this.appSecret = properties.getSecretKey();
 		this.jsonParseTool = jsonParseTool;
 		this.webClientTool = webClientTool;
 	}

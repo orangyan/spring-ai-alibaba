@@ -101,7 +101,7 @@ public class DashScopeMultiModalChatTests {
 		ChatCompletion chatCompletion = new ChatCompletion(TEST_REQUEST_ID, output, usage);
 		ResponseEntity<ChatCompletion> responseEntity = ResponseEntity.ok(chatCompletion);
 
-		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class))).thenReturn(responseEntity);
+		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class), any())).thenReturn(responseEntity);
 
 		// Create media list with URL
 		List<Media> mediaList = List.of(new Media(MimeTypeUtils.IMAGE_PNG,
@@ -137,7 +137,7 @@ public class DashScopeMultiModalChatTests {
 		ChatCompletion chatCompletion = new ChatCompletion(TEST_REQUEST_ID, output, usage);
 		ResponseEntity<ChatCompletion> responseEntity = ResponseEntity.ok(chatCompletion);
 
-		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class))).thenReturn(responseEntity);
+		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class), any())).thenReturn(responseEntity);
 
 		// Create user message with resource media
 		UserMessage message = UserMessage.builder()
@@ -172,7 +172,7 @@ public class DashScopeMultiModalChatTests {
 		ChatCompletion chatCompletion = new ChatCompletion(TEST_REQUEST_ID, output, usage);
 		ResponseEntity<ChatCompletion> responseEntity = ResponseEntity.ok(chatCompletion);
 
-		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class))).thenReturn(responseEntity);
+		when(dashScopeApi.chatCompletionEntity(any(ChatCompletionRequest.class), any())).thenReturn(responseEntity);
 
 		// Create media list with multiple frames (simulating video frames)
 		List<Media> mediaList = new ArrayList<>();
@@ -215,7 +215,8 @@ public class DashScopeMultiModalChatTests {
 		ChatCompletionChunk chunk1 = new ChatCompletionChunk(TEST_REQUEST_ID, output1, null);
 		ChatCompletionChunk chunk2 = new ChatCompletionChunk(TEST_REQUEST_ID, output2, new TokenUsage(10, 5, 15));
 
-		when(dashScopeApi.chatCompletionStream(any(ChatCompletionRequest.class))).thenReturn(Flux.just(chunk1, chunk2));
+		when(dashScopeApi.chatCompletionStream(any(ChatCompletionRequest.class), any()))
+			.thenReturn(Flux.just(chunk1, chunk2));
 
 		// Create user message with resource media
 		UserMessage message = UserMessage.builder()
