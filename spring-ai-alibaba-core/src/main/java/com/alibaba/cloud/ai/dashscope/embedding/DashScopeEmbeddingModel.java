@@ -1,4 +1,18 @@
-
+/*
+ * Copyright 2024-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.cloud.ai.dashscope.embedding;
 
 import java.util.HashMap;
@@ -22,6 +36,7 @@ import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.embedding.EmbeddingResponseMetadata;
+import org.springframework.ai.embedding.BatchingStrategy;
 import org.springframework.ai.embedding.observation.DefaultEmbeddingModelObservationConvention;
 import org.springframework.ai.embedding.observation.EmbeddingModelObservationContext;
 import org.springframework.ai.embedding.observation.EmbeddingModelObservationConvention;
@@ -32,10 +47,14 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 /**
- * DashScopeEmbeddingModel类继承自AbstractEmbeddingModel，用于实现具体的嵌入模型功能。
- * 该类主要负责定义和管理DashScope嵌入模型的元数据，如模型的唯一标识符（UID）、
- * 模型的友好名称（Friendly name）、模型的描述、嵌入向量的维度、模型的版本信息等。
- * 此外，该类还提供了序列化和反序列化嵌入模型对象的功能，以便于模型对象的存储和传输。
+ * DashScope Embedding Model implementation.
+ *
+ * @author nuocheng.lxm
+ * @author why_ohh
+ * @author yuluo
+ * @author <a href="mailto:550588941@qq.com">why_ohh</a>
+ * @author yyyhhx
+ * @since 2024/7/31 10:57
  */
 public class DashScopeEmbeddingModel extends AbstractEmbeddingModel {
 
@@ -213,6 +232,42 @@ public class DashScopeEmbeddingModel extends AbstractEmbeddingModel {
 	public void setObservationConvention(EmbeddingModelObservationConvention observationConvention) {
 		Assert.notNull(observationConvention, "observationConvention cannot be null");
 		this.observationConvention = observationConvention;
+	}
+
+	/**
+	 * Embed the provided texts and return the embeddings.
+	 * @return The embeddings
+	 */
+	@Override
+	public List<float[]> embed(List<String> texts) {
+		Assert.notNull(texts, "Texts must not be null");
+		return this.call(new EmbeddingRequest(texts, defaultOptions))
+			.getResults()
+			.stream()
+			.map(Embedding::getOutput)
+			.toList();
+	}
+
+	/**
+	 * Embed the provided documents and return the embeddings.
+	 * @return The embeddings
+	 */
+	@Override
+	public List<float[]> embed(List<Document> documents, EmbeddingOptions options, BatchingStrategy batchingStrategy) {
+		if (options.getModel() == null && options.getDimensions() == null && defaultOptions != null) {
+			options = defaultOptions;
+		}
+		return super.embed(documents, options, batchingStrategy);
+	}
+
+	/**
+	 * Embed the provided documents and return the response.
+	 * @return The embedding response
+	 */
+	@Override
+	public EmbeddingResponse embedForResponse(List<String> texts) {
+		Assert.notNull(texts, "Texts must not be null");
+		return this.call(new EmbeddingRequest(texts, defaultOptions));
 	}
 
 }

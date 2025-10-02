@@ -39,6 +39,8 @@ class DashScopeChatOptionsTests {
 
 	private static final Double TEST_REPETITION_PENALTY = 1.1;
 
+    private static final Integer TEST_THINKING_BUDGET = 1000;
+
 	@Test
 	void testBuilderAndGetters() {
 		// Test building DashScopeChatOptions using builder pattern and verify getters
@@ -53,6 +55,8 @@ class DashScopeChatOptionsTests {
 			.withEnableSearch(true)
 			.withIncrementalOutput(true)
 			.withVlHighResolutionImages(true)
+                .withEnableThinking(true)
+                .withThinkingBudget(TEST_THINKING_BUDGET)
 			.withMultiModel(true)
 			.build();
 
@@ -67,6 +71,8 @@ class DashScopeChatOptionsTests {
 		assertThat(options.getEnableSearch()).isTrue();
 		assertThat(options.getIncrementalOutput()).isTrue();
 		assertThat(options.getVlHighResolutionImages()).isTrue();
+        assertThat(options.getEnableThinking()).isTrue();
+        assertThat(options.getThinkingBudget()).isEqualTo(TEST_THINKING_BUDGET);
 		assertThat(options.getMultiModel()).isTrue();
 	}
 
@@ -85,6 +91,8 @@ class DashScopeChatOptionsTests {
 		options.setEnableSearch(true);
 		options.setIncrementalOutput(true);
 		options.setVlHighResolutionImages(true);
+        options.setEnableThinking(true);
+        options.setThinkingBudget(TEST_THINKING_BUDGET);
 		options.setMultiModel(true);
 
 		// Verify all fields are set correctly
@@ -98,6 +106,8 @@ class DashScopeChatOptionsTests {
 		assertThat(options.getEnableSearch()).isTrue();
 		assertThat(options.getIncrementalOutput()).isTrue();
 		assertThat(options.getVlHighResolutionImages()).isTrue();
+        assertThat(options.getEnableThinking()).isTrue();
+        assertThat(options.getThinkingBudget()).isEqualTo(TEST_THINKING_BUDGET);
 		assertThat(options.getMultiModel()).isTrue();
 	}
 

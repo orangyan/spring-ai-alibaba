@@ -20,6 +20,11 @@ public enum MessageFormat {
 	/**
 	 * video format
 	 */
-	VIDEO
+	VIDEO,
+
+	/**
+	 * audio format
+	 */
+	AUDIO
 
 }
