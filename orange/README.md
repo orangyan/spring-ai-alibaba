@@ -371,22 +371,439 @@
 
 ---
 
+### 9. [Spring AI Alibaba 调用流程深度解析](./Spring-AI-Alibaba调用流程深度解析.md) ⭐⭐⭐ 🔥 必读
+**适合人群**: 所有开发者，理解框架运行机制  
+**内容概要**:
+- 5 种典型场景的完整调用流程
+- 每个步骤的详细说明
+- 关键对象和数据结构
+- 核心源码剖析
+- 时序图和性能数据
+- 优化建议和最佳实践
+
+**涵盖场景**:
+```
+✓ 场景一：简单聊天调用
+  - 14 步完整流程
+  - Prompt → ChatClient → ChatModel → DashScope API
+  - HTTP 请求和响应格式
+  - 核心源码详解
+  - 时序图和性能数据
+
+✓ 场景二：流式调用
+  - SSE 连接建立
+  - 逐 token 流式返回
+  - WebClient 实现
+  - Flux 响应式处理
+  - 首字响应优化（200ms vs 1000ms）
+
+✓ 场景三：Function Calling 调用
+  - 两轮调用机制
+  - 第一轮：LLM 决策工具调用
+  - Tool 执行和结果返回
+  - 第二轮：LLM 生成最终回复
+  - ToolCallingManager 实现
+  - Function 注册和调用
+
+✓ 场景四：RAG 检索增强调用
+  - DocumentRetrievalAdvisor 拦截
+  - 向量检索流程
+  - VectorStore.similaritySearch()
+  - 上下文注入和 Prompt 增强
+  - Embedding 模型使用
+  - Top-K 和相似度阈值
+
+✓ 场景五：Graph 工作流调用
+  - CompiledGraph.invoke()
+  - 节点编排和状态传递
+  - GraphExecutor 执行引擎
+  - START → Node1 → Node2 → END
+  - 状态驱动和数据流转
+  - 嵌套 LLM 调用
+
+✓ 底层实现详解
+  - Spring Boot 自动配置
+  - HTTP 客户端（RestClient/WebClient）
+  - 重试机制（RetryTemplate）
+  - 可观测性集成（OpenTelemetry）
+
+✓ 性能优化和最佳实践
+  - 性能瓶颈分析
+  - 流式调用优化
+  - 缓存策略
+  - 异步处理
+  - 批量处理
+  - 成本优化（模型选择、Token 控制）
+```
+
+---
+
+### 10. [Spring AI Alibaba 特有设计详解](./Spring-AI-Alibaba特有设计详解.md) ⭐⭐⭐ 🆕 必读
+**适合人群**: 深入理解框架设计的开发者  
+**内容概要**:
+- DashScopeChatOptions 配置选项详解
+- DashScopeApi HTTP 客户端封装
+- DashScopeChatModel 实现原理
+- Spring AI 标准接口 vs Alibaba 实现对比
+- 完整配置和使用示例
+- 最佳实践和性能优化
+
+**涵盖内容**:
+```
+✓ DashScopeChatOptions（配置选项类）
+  - 20+ 个配置参数详解
+  - 基础参数（temperature/topP/topK/seed）
+  - DashScope 特有参数
+    • enableSearch（联网搜索）
+    • searchOptions（搜索策略）
+    • repetitionPenalty（重复惩罚）
+    • incrementalOutput（增量输出）
+    • responseFormat（返回格式）
+    • enableThinking（思维过程）
+  - Function Calling 参数
+    • tools / toolChoice / parallelToolCalls
+    • toolCallbacks / toolNames
+    • internalToolExecutionEnabled
+  - 多模态参数
+    • vlHighResolutionImages
+    • multiModel
+  - Builder 模式和配置层级
+  - 7 种典型场景的完整配置示例
+
+✓ DashScopeApi（HTTP 客户端）
+  - 设计目的和架构
+  - 核心功能
+    • chatCompletionEntity（同步调用）
+    • chatCompletionStream（流式调用）
+    • embeddings（向量化）
+  - 多 HTTP 客户端设计
+    • RestClient（同步阻塞）
+    • WebClient（响应式流式）
+  - 请求/响应模型
+    • ChatCompletionRequest
+    • ChatCompletion
+    • ChatCompletionChunk
+  - 错误处理机制
+  - 认证机制（API Key + Workspace ID）
+
+✓ DashScopeChatModel（ChatModel 实现）
+  - 实现 Spring AI 标准接口
+  - call() 同步调用实现
+  - stream() 流式调用实现
+  - Function Calling 完整支持
+  - 重试机制（RetryTemplate）
+  - 可观测性集成（OpenTelemetry）
+
+✓ 设计对比
+  - Spring AI 标准接口 vs Alibaba 实现
+  - 配置参数对比表
+  - 架构设计对比图
+
+✓ 完整使用示例
+  - Spring Boot 自动配置
+  - 直接使用 ChatModel
+  - 使用 ChatClient（推荐）
+  - 分层配置管理
+
+✓ 最佳实践
+  - 配置管理（分层配置）
+  - 性能优化（流式调用、缓存）
+  - 错误处理（优雅降级）
+  - 可观测性（指标收集）
+```
+
+---
+
+### 11. [DashScope 核心实现类全景图](./DashScope核心实现类全景图.md) ⭐⭐⭐ 🔥 必读
+**适合人群**: 所有深入学习 DashScope 集成的开发者  
+**内容概要**:
+- 55+ 个 DashScope 相关核心实现类完整梳理
+- 分层架构详解（Model/API/Agent/RAG/Protocol）
+- 每个类的功能、配置和使用说明
+- 架构总览和技术特性
+- 学习路径建议
+
+**涵盖内容**:
+```
+✓ 模型实现层（7个核心模型）
+  - DashScopeChatModel（对话）
+  - DashScopeImageModel（图像生成）
+  - DashScopeEmbeddingModel（向量嵌入）
+  - DashScopeRerankModel（重排序）
+  - DashScopeAudioSpeechModel（语音合成TTS）
+  - DashScopeAudioTranscriptionModel（语音识别ASR）
+  - DashScopeVideoModel（视频生成T2V/I2V）
+
+✓ API客户端层（7个API客户端）
+  - DashScopeApi（核心API客户端）
+  - DashScopeImageApi
+  - DashScopeAudioSpeechApi
+  - DashScopeAudioTranscriptionApi
+  - DashScopeVideoApi
+  - DashScopeAgentApi
+  - DashScopeWebSocketClient（实时通信）
+
+✓ Agent智能体层
+  - DashScopeAgent（百炼应用封装）
+  - DashScopeAgentOptions（配置）
+  - 会话管理、思考链、RAG集成
+
+✓ RAG实现层（6个核心类）
+  - DashScopeCloudStore（云端向量存储）
+  - DashScopeDocumentRetriever（文档检索）
+  - DashScopeDocumentCloudReader（文档读取）
+  - DashScopeDocumentTransformer（文档转换）
+  - DashScopeDocumentRetrievalAdvisor
+
+✓ 通信协议层
+  - DashScopeWebSocketClient（WebSocket客户端）
+  - 双工通信、事件监听、流式集成
+
+✓ 配置选项类（8+ Options类）
+  - DashScopeChatOptions
+  - DashScopeImageOptions
+  - DashScopeEmbeddingOptions
+  - DashScopeRerankOptions
+  - DashScopeAudioSpeechOptions
+  - DashScopeAudioTranscriptionOptions
+  - DashScopeVideoOptions
+  - 每个Options的详细参数说明
+
+✓ Spring Boot自动配置层（8个AutoConfiguration）
+  - 对话、图像、嵌入、重排序
+  - 语音合成、语音识别、视频、Agent
+  - 自动装配和配置管理
+
+✓ Advisor与辅助类
+  - DashScopeDocumentAnalysisAdvisor（文档分析）
+  - DashScopeAiStreamFunctionCallingHelper
+  - DashScopeResponseFormat
+
+✓ 元数据与常量类
+  - DashScopeAiUsage（使用量统计）
+  - DashScopeImageGenMetadata
+  - DashScopeApiConstants
+  - DashScopeException
+
+✓ 架构总览
+  - 分层架构图（5层设计）
+  - RAG架构流程图
+  - 55+ 核心类统计表
+  - 应用场景覆盖表
+
+✓ 核心设计模式
+  - Builder模式
+  - 策略模式
+  - 观察者模式
+  - 适配器模式
+  - 装饰器模式
+
+✓ 技术特性总结
+  - 完整的模型支持（7大类）
+  - 流式与同步双支持
+  - WebSocket实时通信
+  - 云端RAG方案
+  - Spring Boot无缝集成
+  - 可观测性内置
+```
+
+---
+
+### 12. [DashScope 模型详解系列](./DashScope模型详解/README.md) ⭐⭐⭐⭐⭐ 🔥 **最全面** 🎉 **完整版**
+**适合人群**: 所有深入学习 DashScope 的开发者（从入门到精通）  
+**文档数量**: 25个详解 + 7个索引 = 32个文档  
+**总字数**: 约 287,000 字  
+**内容概要**:
+- DashScope 核心实现类的完整文档体系
+- 覆盖模型层、API层、Agent层、协议层、配置层
+- 从基础使用到高级优化的全方位指南
+
+**完整体系**:
+```
+✓ 模型实现层（7个详解）
+  1.1 DashScopeChatModel 详解 ⭐⭐⭐ 🔥 必读
+      - 文本对话、多轮对话
+      - Function Calling、多模态
+      - 同步/流式调用、重试机制
+      - 12,000+ 字完整指南
+      
+  1.2 DashScopeImageModel 详解 ⭐⭐⭐
+      - 文生图、图生图、风格控制
+      - 异步任务模式、负提示词
+      - 10+ 种预设风格
+      
+  1.3 DashScopeEmbeddingModel 详解 ⭐⭐⭐ 🔥 RAG必读
+      - 文本向量化、语义搜索
+      - 多种维度（512/768/1024/1536）
+      - TextType（query/document）
+      - RAG 应用基础
+      
+  1.4 DashScopeRerankModel 详解 ⭐⭐⭐ 🔥 RAG进阶必读
+      - 文档重排序、相关性打分
+      - Top-N 筛选、RAG 质量提升
+      
+  1.5 DashScopeAudioSpeechModel 详解 ⭐⭐
+      - 语音合成（TTS）、50+ 音色
+      - 流式输出、语速/音调控制
+      
+  1.6 DashScopeAudioTranscriptionModel 详解 ⭐⭐
+      - 语音识别（ASR）、热词定制
+      - 异步/同步/流式识别
+      
+  1.7 DashScopeVideoModel 详解 ⭐⭐
+      - 视频生成（T2V/I2V）
+      - 异步任务、首尾帧控制
+
+✓ API客户端层（6个详解）
+  2.1 DashScopeApi 详解 ⭐⭐⭐ 🔥 底层核心
+      - 核心 HTTP 客户端
+      - 双客户端架构（RestClient + WebClient）
+      - 6大服务（对话/嵌入/重排序/文件/文档/RAG）
+      - 30+ 数据结构详解
+      
+  2.2 DashScopeImageApi 详解 ⭐⭐⭐
+      - 图像生成 API 客户端
+      - 异步任务提交和轮询
+      - 8个图像模型支持
+      
+  2.3 DashScopeAudioSpeechApi 详解 ⭐⭐
+      - 语音合成 API（TTS）
+      - WebSocket 流式通信
+      - SSML 支持、时间戳
+      
+  2.4 DashScopeAudioTranscriptionApi 详解 ⭐⭐⭐
+      - 语音识别 API（ASR）
+      - 双模式（REST + WebSocket）
+      - 热词定制、去口语化
+      
+  2.5 DashScopeVideoApi 详解 ⭐⭐
+      - 视频生成 API
+      - 5种视频模型、20+ 模板
+      - 异步任务管理
+      
+  2.6 DashScopeAgentApi 详解 ⭐⭐⭐
+      - Agent API 客户端
+      - 会话/记忆管理、RAG 集成
+      - 思维链输出
+
+✓ Agent智能体层（3个详解）
+  3.1 DashScopeAgent 详解 ⭐⭐⭐ 🔥
+      - Spring AI Agent 接口实现
+      - 选项合并、请求/响应转换
+      - 会话管理、RAG 集成
+      
+  3.2 DashScopeAgentFlowStreamMode 详解 ⭐⭐
+      - 流式模式枚举
+      - FULL_THOUGHTS vs AGENT_FORMAT
+      
+  3.3 DashScopeAgentRagOptions 详解 ⭐⭐⭐
+      - Agent RAG 配置类
+      - Pipeline/File/Tag/元数据过滤
+      - 动态 RAG 配置
+
+✓ 通信协议层（2个详解）
+  5.1 DashScopeWebSocketClient 详解 ⭐⭐⭐ 🔥
+      - WebSocket 客户端
+      - 连接管理、事件处理
+      - Flux 流式响应
+      
+  5.2 DashScopeWebSocketClientOptions 详解 ⭐⭐
+      - WebSocket 配置类
+      - url/apiKey/workSpaceId
+      - 多环境配置
+
+✓ 配置选项类（7个详解）🎉 最新完成
+  6.1 DashScopeChatOptions 详解 ⭐⭐⭐⭐⭐ 🔥 最全面
+      - 25+ 配置字段详解
+      - 基础/采样/工具/搜索/高级参数
+      - 场景配置预设（通用/事实/创意/代码）
+      - temperature/topP 完整指南
+      
+  6.2 DashScopeImageOptions 详解 ⭐⭐⭐⭐ 🔥
+      - 20+ 配置字段详解
+      - 10+ 种风格预设
+      - 图像编辑（inpainting/outpainting）
+      - Prompt 优化技巧
+      
+  6.3 DashScopeEmbeddingOptions 详解 ⭐⭐⭐ 🔥 RAG必备
+      - 模型选择、文本类型
+      - 维度优化策略
+      - 存储成本分析
+      
+  6.4 DashScopeRerankOptions 详解 ⭐⭐⭐ 🔥 RAG优化
+      - Top-N 调优指南
+      - 成本效益分析
+      - RAG 集成优化
+      
+  6.5 DashScopeAudioSpeechOptions 详解 ⭐⭐⭐ 🔥
+      - 50+ 音色详解
+      - SSML 高级控制
+      - 词级/音素级时间戳
+      
+  6.6 DashScopeAudioTranscriptionOptions 详解 ⭐⭐⭐
+      - 热词表管理
+      - 7种音频格式支持
+      - 场景预设（通用/实时/客服/会议/医疗）
+      
+  6.7 DashScopeVideoOptions 详解 ⭐⭐⭐
+      - 4种生成模式（T2V/I2V/关键帧/模板）
+      - 20+ 视频模板
+      - Prompt 优化技巧
+```
+
+**学习价值**:
+```
+✓ 完整性：覆盖 DashScope 所有核心功能
+✓ 深度性：从基础使用到源码分析
+✓ 实用性：150+ 代码示例，80+ 配置预设
+✓ 系统性：5层架构体系，清晰的学习路径
+✓ 专业性：287,000 字专业技术文档
+```
+
+**推荐学习路径**:
+```
+入门路径（3天）：
+Day 1: ChatModel + EmbeddingModel（RAG基础）
+Day 2: ImageModel + AudioSpeechModel（多模态）
+Day 3: ChatOptions + 场景实战
+
+进阶路径（1周）：
+Week 1: 7个模型详解 + 7个配置类详解
+        理解同步/异步/流式模式
+
+深入路径（2周）：
+Week 1: 6个API客户端详解
+Week 2: 3个Agent智能体详解 + 2个通信协议详解
+        掌握底层实现原理
+```
+
+**适合场景**:
+- 💬 对话应用：Chat/Embedding/Rerank
+- 🎨 多模态应用：Image/Audio/Video
+- 🤖 智能体应用：Agent/RAG/Tools
+- 🔧 框架集成：API客户端/配置管理
+
+---
+
 ## 🎯 学习路径推荐
 
 ### 初学者路径 (1-2周)
 ```
 Day 1-2:  阅读《项目架构文档》前半部分
           了解项目概述、总体架构、核心模块
+          🔥 必读《调用流程深度解析》- 场景一、二
           
 Day 3-5:  跟随《快速开始指南》
           完成环境搭建
           实现第一个聊天应用
           尝试 3-5 个核心功能示例
+          理解每个示例的调用流程
           
 Day 6-10: 继续《快速开始指南》进阶部分
           实现 Graph 工作流
           集成 MCP 工具
           配置可观测性
+          🔥 阅读《调用流程深度解析》- 场景三、四、五
           
 Day 11-14: 阅读《项目架构文档》后半部分
            深入理解数据流转
@@ -420,11 +837,18 @@ Week 4: 实战项目开发
 
 ### 源码贡献者路径 (持续学习)
 ```
-1. 完整阅读所有文档（8份核心文档）
-2. 深入研究源码实现
-3. 参与社区讨论
-4. 提交 Issue 和 PR
-5. 编写技术博客
+1. 完整阅读所有文档（12份核心文档）
+2. 🔥 精读《调用流程深度解析》理解底层实现
+3. 🔥 精读《特有设计详解》理解框架设计
+4. 🔥 精读《DashScope核心实现类全景图》掌握完整技术栈
+5. 🎉 **精读《DashScope模型详解系列》（32个文档）**
+   - 模型层（7个）+ API层（6个）+ Agent层（3个）
+   - 协议层（2个）+ 配置层（7个）+ 索引（7个）
+   - 掌握每个模型的实现细节和最佳实践
+6. 深入研究源码实现
+7. 参与社区讨论
+8. 提交 Issue 和 PR
+9. 编写技术博客
 ```
 
 ---
@@ -590,6 +1014,16 @@ chatClient = builder
 
 | 版本 | 日期 | 更新内容 |
 |------|------|----------|
+| **v1.9** 🎉 | **2025-10-05** | **新增 DashScope 模型详解系列（32个文档，287,000字）**🔥 **完整版** |
+|  |  | • 7个模型详解（Chat/Image/Embedding/Rerank/TTS/ASR/Video） |
+|  |  | • 6个API客户端详解（DashScopeApi/ImageApi/AudioApi/VideoApi/AgentApi） |
+|  |  | • 3个Agent智能体详解（Agent/FlowStreamMode/RagOptions） |
+|  |  | • 2个通信协议详解（WebSocketClient/Options） |
+|  |  | • **7个配置选项类详解（ChatOptions/ImageOptions/等）** |
+|  |  | • 7个层级索引文档 |
+| v1.8 🔥 | 2025-10-05 | 新增 DashScope 核心实现类全景图（55+核心类完整梳理）|
+| v1.7 🔥 | 2025-10-05 | 新增 Spring AI Alibaba 特有设计详解 |
+| v1.6 🔥 | 2025-10-05 | 新增 Spring AI Alibaba 调用流程深度解析 |
 | v1.5 | 2025-10-02 | 新增 spring-ai-alibaba-studio 模块深度分析 |
 | v1.4 | 2025-10-02 | 新增 spring-ai-alibaba-a2a 模块专项分析 |
 | v1.3 | 2025-10-02 | 新增 spring-ai-alibaba-mcp 模块专项分析 |
