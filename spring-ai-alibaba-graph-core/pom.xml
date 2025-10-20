@@ -40,27 +40,22 @@
     <properties>
         <testcontainers.version>1.19.3</testcontainers.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <community.components.version>1.0.0.3</community.components.version>
         <jackson.version>2.18.4</jackson.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-reference-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-server-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-client</artifactId>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
         </dependency>
 
         <dependency>
@@ -80,32 +75,32 @@
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-core</artifactId>
-            <version>${revision}</version>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+            <version>${spring-ai-extensions.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-document-parser-tika</artifactId>
-            <version>${community.components.version}</version>
+            <version>${spring-ai-extensions.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-document-parser-markdown</artifactId>
-            <version>${community.components.version}</version>
+            <version>${spring-ai-extensions.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-document-parser-bshtml</artifactId>
-            <version>${community.components.version}</version>
+            <version>${spring-ai-extensions.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-document-parser-yaml</artifactId>
-            <version>${community.components.version}</version>
+            <version>${spring-ai-extensions.version}</version>
         </dependency>
 
         <dependency>
