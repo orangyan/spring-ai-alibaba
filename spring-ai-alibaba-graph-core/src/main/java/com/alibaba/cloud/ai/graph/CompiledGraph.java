@@ -97,6 +97,8 @@ public class CompiledGraph {
 	 * @throws GraphStateException the graph state exception
 	 */
 	protected CompiledGraph(StateGraph stateGraph, CompileConfig compileConfig) throws GraphStateException {
+		maxIterations = compileConfig.recursionLimit();
+
 		this.stateGraph = stateGraph;
 		this.keyStrategyMap = stateGraph.getKeyStrategyFactory()
 			.apply()
@@ -167,17 +169,21 @@ public class CompiledGraph {
 					throw Errors.illegalMultipleTargetsOnParallelNode.exception(e.sourceId(), parallelNodeTargets);
 				}
 
-				var actions = parallelNodeStream.get()
-					.map(target -> {
-						try {
-							return nodeFactories.get(target.id()).apply(compileConfig);
-						} catch (GraphStateException ex) {
-							throw new RuntimeException("Failed to create parallel node action for target: " + target.id() + ". Cause: " + ex.getMessage(), ex);
-						}
-					})
-					.toList();
+			var targetList = parallelNodeStream.get().toList();
 
-				var parallelNode = new ParallelNode(e.sourceId(), actions, keyStrategyMap, compileConfig);
+			var actions = targetList.stream()
+				.map(target -> {
+					try {
+						return nodeFactories.get(target.id()).apply(compileConfig);
+					} catch (GraphStateException ex) {
+						throw new RuntimeException("Failed to create parallel node action for target: " + target.id() + ". Cause: " + ex.getMessage(), ex);
+					}
+				})
+				.toList();
+
+			var actionNodeIds = targetList.stream().map(EdgeValue::id).toList();
+
+			var parallelNode = new ParallelNode(e.sourceId(), actions, actionNodeIds, keyStrategyMap, compileConfig);
 
 				nodeFactories.put(parallelNode.id(), parallelNode.actionFactory());
 
@@ -417,9 +423,12 @@ public class CompiledGraph {
 
 	/**
 	 * Sets the maximum number of iterations for the graph execution.
+	 *
 	 * @param maxIterations the maximum number of iterations
 	 * @throws IllegalArgumentException if maxIterations is less than or equal to 0
+	 * @deprecated use CompileConfig.recursionLimit() instead
 	 */
+	@Deprecated(forRemoval = true)
 	public void setMaxIterations(int maxIterations) {
 		if (maxIterations <= 0) {
 			throw new IllegalArgumentException("maxIterations must be > 0!");

@@ -16,14 +16,18 @@
 package com.alibaba.cloud.ai.graph.agent;
 
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import com.alibaba.cloud.ai.graph.CompileConfig;
 import com.alibaba.cloud.ai.graph.KeyStrategy;
-import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.agent.hook.Hook;
-import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ModelInterceptor;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ToolInterceptor;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
+import com.alibaba.cloud.ai.graph.checkpoint.config.SaverConfig;
+
 import io.micrometer.observation.ObservationRegistry;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -53,13 +57,14 @@ public abstract class Builder {
 
 	protected ToolCallbackResolver resolver;
 
-	protected int maxIterations = 10;
+	protected boolean releaseThread;
 
-	protected CompileConfig compileConfig;
+	protected BaseCheckpointSaver saver;
 
-	protected Function<OverAllState, Boolean> shouldContinueFunc;
-
-	protected List<Hook> hooks;
+	protected List<? extends Hook> hooks;
+	protected List<? extends Interceptor> interceptors;
+	protected List<ModelInterceptor> modelInterceptors;
+	protected List<ToolInterceptor> toolInterceptors;
 
 	protected boolean includeContents = true;
 	protected boolean returnReasoningContents;
@@ -78,11 +83,14 @@ public abstract class Builder {
 
 	protected ChatClientObservationConvention customObservationConvention;
 
+	protected boolean enableLogging;
+
 	public Builder name(String name) {
 		this.name = name;
 		return this;
 	}
 
+	@Deprecated
 	public Builder chatClient(ChatClient chatClient) {
 		this.chatClient = chatClient;
 		return this;
@@ -103,23 +111,23 @@ public abstract class Builder {
 		return this;
 	}
 
+	public Builder tools(ToolCallback... tools) {
+		this.tools = Arrays.asList(tools);
+		return this;
+	}
+
 	public Builder resolver(ToolCallbackResolver resolver) {
 		this.resolver = resolver;
 		return this;
 	}
 
-	public Builder maxIterations(int maxIterations) {
-		this.maxIterations = maxIterations;
+	public Builder releaseThread(boolean releaseThread) {
+		this.releaseThread = releaseThread;
 		return this;
 	}
 
-	public Builder compileConfig(CompileConfig compileConfig) {
-		this.compileConfig = compileConfig;
-		return this;
-	}
-
-	public Builder shouldContinueFunction(Function<OverAllState, Boolean> shouldContinueFunc) {
-		this.shouldContinueFunc = shouldContinueFunc;
+	public Builder saver(BaseCheckpointSaver saver) {
+		this.saver = saver;
 		return this;
 	}
 
@@ -178,8 +186,23 @@ public abstract class Builder {
 		return this;
 	}
 
-	public Builder hooks(List<Hook> hooks) {
+	public Builder hooks(List<? extends Hook> hooks) {
 		this.hooks = hooks;
+		return this;
+	}
+
+	public Builder hooks(Hook... hooks) {
+		this.hooks = Arrays.asList(hooks);
+		return this;
+	}
+
+	public Builder interceptors(List<? extends Interceptor> interceptors) {
+		this.interceptors = interceptors;
+		return this;
+	}
+
+	public Builder interceptors(Interceptor... interceptors) {
+		this.interceptors = Arrays.asList(interceptors);
 		return this;
 	}
 
@@ -193,6 +216,22 @@ public abstract class Builder {
 		return this;
 	}
 
-	public abstract ReactAgent build() throws GraphStateException;
+	public Builder enableLogging(boolean enableLogging) {
+		this.enableLogging = enableLogging;
+		return this;
+	}
+
+	protected CompileConfig buildConfig() {
+		SaverConfig saverConfig = SaverConfig.builder()
+				.register(saver)
+				.build();
+		return CompileConfig.builder()
+				.saverConfig(saverConfig)
+				.recursionLimit(Integer.MAX_VALUE)
+				.releaseThread(releaseThread)
+				.build();
+	}
+
+	public abstract ReactAgent build();
 
 }

@@ -19,12 +19,18 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.NodeActionWithConfig;
 import com.alibaba.cloud.ai.graph.state.RemoveByHash;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ToolInterceptor;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ToolCallRequest;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ToolCallResponse;
+import com.alibaba.cloud.ai.graph.agent.interceptor.ToolCallHandler;
+import com.alibaba.cloud.ai.graph.agent.interceptor.InterceptorChain;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
 
 
@@ -35,27 +41,49 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class AgentToolNode implements NodeActionWithConfig {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-	private List<ToolCallback> toolCallbacks = new ArrayList<>();
+import static com.alibaba.cloud.ai.graph.agent.tools.ToolContextConstants.AGENT_CONFIG_CONTEXT_KEY;
+import static com.alibaba.cloud.ai.graph.agent.tools.ToolContextConstants.AGENT_STATE_CONTEXT_KEY;
+import static com.alibaba.cloud.ai.graph.agent.tools.ToolContextConstants.AGENT_STATE_FOR_UPDATE_CONTEXT_KEY;
+import static com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver.THREAD_ID_DEFAULT;
+
+public class AgentToolNode implements NodeActionWithConfig {
+	public static final String TOOL_NODE_NAME = "tool";
+	private static final Logger logger = LoggerFactory.getLogger(AgentToolNode.class);
+
+	private final String agentName;
+
+	private boolean enableActingLog;
+
+	private List<ToolCallback> toolCallbacks;
+
+	private List<ToolInterceptor> toolInterceptors = new ArrayList<>();
 
 	private ToolCallbackResolver toolCallbackResolver;
 
-	public AgentToolNode(ToolCallbackResolver resolver) {
-		this.toolCallbackResolver = resolver;
-	}
-
-	public AgentToolNode(List<ToolCallback> toolCallbacks, ToolCallbackResolver resolver) {
-		this.toolCallbacks = toolCallbacks;
-		this.toolCallbackResolver = resolver;
+	public AgentToolNode(Builder builder) {
+		this.agentName = builder.agentName;
+		this.enableActingLog = builder.enableActingLog;
+		this.toolCallbackResolver = builder.toolCallbackResolver;
+		this.toolCallbacks = builder.toolCallbacks;
 	}
 
 	public void setToolCallbacks(List<ToolCallback> toolCallbacks) {
 		this.toolCallbacks = toolCallbacks;
 	}
 
+	public void setToolInterceptors(List<ToolInterceptor> toolInterceptors) {
+		this.toolInterceptors = toolInterceptors;
+	}
+
 	void setToolCallbackResolver(ToolCallbackResolver toolCallbackResolver) {
 		this.toolCallbackResolver = toolCallbackResolver;
+	}
+
+	public List<ToolCallback> getToolCallbacks() {
+		return toolCallbacks;
 	}
 
 	@Override
@@ -64,20 +92,27 @@ public class AgentToolNode implements NodeActionWithConfig {
 		Message lastMessage = messages.get(messages.size() - 1);
 
 		Map<String, Object> updatedState = new HashMap<>();
+		Map<String, Object> extraStateFromToolCall = new HashMap<>();
 		if (lastMessage instanceof AssistantMessage assistantMessage) {
 			// execute the tool function
 			List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
+
+			if (enableActingLog) {
+				logger.info("[ThreadId {}] Agent {} acting with {} tools.", config.threadId().orElse(THREAD_ID_DEFAULT), agentName, assistantMessage.getToolCalls().size());
+			}
+
 			for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-				String toolName = toolCall.name();
-				String toolArgs = toolCall.arguments();
-
-				ToolCallback toolCallback = this.resolve(toolName);
-
-				String toolResult = toolCallback.call(toolArgs, new ToolContext(Map.of("state", state, "config", config)));
-				toolResponses.add(new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, toolResult));
+				// Execute tool call with interceptor chain
+				ToolCallResponse response = executeToolCallWithInterceptors(toolCall, state, config, extraStateFromToolCall);
+				toolResponses.add(response.toToolResponse());
 			}
 
 			ToolResponseMessage toolResponseMessage = new ToolResponseMessage(toolResponses, Map.of());
+
+			if (enableActingLog) {
+				logger.info("[ThreadId {}] Agent {} acting returned: {}", config.threadId().orElse(THREAD_ID_DEFAULT), agentName, toolResponseMessage);
+			}
+
 			updatedState.put("messages", toolResponseMessage);
 		} else if (lastMessage instanceof ToolResponseMessage toolResponseMessage) {
 			if (messages.size() < 2) {
@@ -95,16 +130,18 @@ public class AgentToolNode implements NodeActionWithConfig {
 					.map(ToolResponseMessage.ToolResponse::name)
 					.collect(Collectors.toSet());
 
+			if (enableActingLog) {
+				logger.info("[ThreadId {}] Agent {} acting with {} tools ({} tools provided results).", config.threadId().orElse(THREAD_ID_DEFAULT), agentName, assistantMessage.getToolCalls().size(), existingResponses.size());
+			}
+
 			for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
 				if (executedToolNames.contains(toolCall.name())) {
 					continue;
 				}
 
-				String toolName = toolCall.name();
-				String toolArgs = toolCall.arguments();
-				ToolCallback toolCallback = this.resolve(toolName);
-				String toolResult = toolCallback.call(toolArgs, new ToolContext(Map.of("state", state, "config", config)));
-				allResponses.add(new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, toolResult));
+				// Execute tool call with interceptor chain
+				ToolCallResponse response = executeToolCallWithInterceptors(toolCall, state, config, extraStateFromToolCall);
+				allResponses.add(response.toToolResponse());
 			}
 
 			List<Object> newMessages = new ArrayList<>();
@@ -112,11 +149,84 @@ public class AgentToolNode implements NodeActionWithConfig {
 			newMessages.add(newToolResponseMessage);
 			newMessages.add(new RemoveByHash<>(assistantMessage));
 			updatedState.put("messages", newMessages);
+
+			if (enableActingLog) {
+				logger.info("[ThreadId {}] Agent {} acting successfully returned.", config.threadId()
+						.orElse(THREAD_ID_DEFAULT), agentName);
+				if (logger.isDebugEnabled()) {
+					logger.debug("[ThreadId {}] Agent {} acting returned: {}", config.threadId()
+							.orElse(THREAD_ID_DEFAULT), agentName, toolResponseMessage);
+				}
+			}
+
 		} else {
 			throw new IllegalStateException("Last message is not an AssistantMessage or ToolResponseMessage");
 		}
 
+		// Merge extra state from tool calls
+		updatedState.putAll(extraStateFromToolCall);
 		return updatedState;
+	}
+
+	/**
+	 * Execute a tool call with interceptor chain support.
+	 */
+	private ToolCallResponse executeToolCallWithInterceptors(
+			AssistantMessage.ToolCall toolCall,
+			OverAllState state,
+			RunnableConfig config,
+			Map<String, Object> extraStateFromToolCall) {
+
+		// Create ToolCallRequest
+		ToolCallRequest request = ToolCallRequest.builder()
+				.toolCall(toolCall)
+				.context(config.metadata().orElse(new HashMap<>()))
+				.build();
+
+		// Create base handler that actually executes the tool
+		ToolCallHandler baseHandler = req -> {
+			ToolCallback toolCallback = resolve(req.getToolName());
+
+			if (enableActingLog) {
+				logger.info("[ThreadId {}] Agent {} acting, executing tool {}.", config.threadId().orElse(THREAD_ID_DEFAULT), agentName, req.getToolName());
+			}
+
+			String result;
+			try {
+				// FIXME, currently only FunctionToolCallback supports ToolContext.
+				if (toolCallback instanceof FunctionToolCallback<?, ?>) {
+					result = toolCallback.call(
+							req.getArguments(),
+							new ToolContext(Map.of(AGENT_STATE_CONTEXT_KEY, state, AGENT_CONFIG_CONTEXT_KEY, config, AGENT_STATE_FOR_UPDATE_CONTEXT_KEY, extraStateFromToolCall))
+					);
+				}
+				else { // toolCallbacks not instance of FunctionToolCallback are considered MCP tools.
+					result = toolCallback.call(req.getArguments());
+				}
+
+				if (enableActingLog) {
+					logger.info("[ThreadId {}] Agent {} acting, tool {} finished", config.threadId()
+									.orElse(THREAD_ID_DEFAULT), agentName, req.getToolName());
+					if (logger.isDebugEnabled()) {
+						logger.debug("Tool {} returned: {}", req.getToolName(), result);
+					}
+				}
+			} catch (Exception e) {
+				logger.error("[ThreadId {}] Agent {} acting, tool {} execution failed. "
+						+ "The agent loop has ended, please use ToolRetryInterceptor to customize the retry and policy on tool failure. \n"
+						, config.threadId().orElse(THREAD_ID_DEFAULT), agentName, req.getToolName(), e);
+				throw e;
+			}
+
+			return ToolCallResponse.of(req.getToolCallId(), req.getToolName(), result);
+		};
+
+		// Chain interceptors if any
+		ToolCallHandler chainedHandler = InterceptorChain.chainToolInterceptors(
+			toolInterceptors, baseHandler);
+
+		// Execute the chained handler
+		return chainedHandler.call(request);
 	}
 
 	private ToolCallback resolve(String toolName) {
@@ -124,7 +234,10 @@ public class AgentToolNode implements NodeActionWithConfig {
 			.filter(callback -> callback.getToolDefinition().name().equals(toolName))
 			.findFirst()
 			.orElseGet(() -> toolCallbackResolver.resolve(toolName));
+	}
 
+	public String getName() {
+		return TOOL_NODE_NAME;
 	}
 
 	public static Builder builder() {
@@ -133,6 +246,10 @@ public class AgentToolNode implements NodeActionWithConfig {
 
 	public static class Builder {
 
+		private String agentName;
+
+		private boolean enableActingLog;
+
 		private List<ToolCallback> toolCallbacks = new ArrayList<>();
 
 		private List<String> toolNames = new ArrayList<>();
@@ -140,6 +257,16 @@ public class AgentToolNode implements NodeActionWithConfig {
 		private ToolCallbackResolver toolCallbackResolver;
 
 		private Builder() {
+		}
+
+		public Builder agentName(String agentName) {
+			this.agentName = agentName;
+			return this;
+		}
+
+		public Builder enableActingLog(boolean enableActingLog) {
+			this.enableActingLog = enableActingLog;
+			return this;
 		}
 
 		public Builder toolCallbacks(List<ToolCallback> toolCallbacks) {
@@ -158,10 +285,7 @@ public class AgentToolNode implements NodeActionWithConfig {
 		}
 
 		public AgentToolNode build() {
-			AgentToolNode toolNode = new AgentToolNode(toolCallbackResolver);
-			toolNode.setToolCallbacks(this.toolCallbacks);
-			toolNode.setToolCallbackResolver(this.toolCallbackResolver);
-			return toolNode;
+			return new AgentToolNode(this);
 		}
 
 	}

@@ -52,6 +52,7 @@ import static com.alibaba.cloud.ai.graph.StateGraph.START;
 import static com.alibaba.cloud.ai.graph.action.AsyncEdgeAction.edge_async;
 import static com.alibaba.cloud.ai.graph.action.AsyncNodeAction.node_async;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -702,11 +703,14 @@ public class StateGraphTest {
 		};
 		PlainTextStateSerializer plainTextStateSerializer = new StateGraph.JacksonSerializer();
 		StateGraph workflow = new StateGraph(keyStrategyFactory, plainTextStateSerializer).addEdge(START, "agent_1")
-			.addNode("agent_1", node_async(state -> {
-				log.info("agent_1\n{}", state);
-				return Map.of("prop1", "test");
-			}))
-			.addEdge("agent_1", END);
+				.addNode("agent_1", node_async(state -> {
+					log.info("agent_1\n{}", state);
+					return Map.of("prop1", "test"
+							, "user", new User("zhangsan", 16), "userList"
+							, List.of(new User("lisi", 18))
+							, "userAry", new User[]{new User("wangwu", 20)});
+				}))
+				.addEdge("agent_1", END);
 
 		CompiledGraph app = workflow.compile();
 
@@ -714,8 +718,25 @@ public class StateGraphTest {
 		System.out.println("result = " + result);
 		assertTrue(result.isPresent());
 
-		Map<String, String> expected = Map.of("input", "test1", "prop1", "test");
-		assertIterableEquals(sortMap(expected), sortMap(result.get().data()));
+		Map<String, Object> expected = Map.of("input", "test1", "prop1", "test"
+				, "user", new User("zhangsan", 16)
+				, "userList", List.of(new User("lisi", 18))
+				, "userAry", new User[]{new User("wangwu", 20)});
+
+		HashMap<String, Object> expectedMClone = new HashMap<>(expected);
+		HashMap<String, Object> resultClone = new HashMap<>(result.get().data());
+		Object expectedAry = expectedMClone.remove("userAry");
+		Object resultAry = resultClone.remove("userAry");
+		assertIterableEquals(sortMap(expectedMClone), sortMap(resultClone));
+		assertArrayEquals((User[]) expectedAry, (User[]) resultAry);
+	}
+
+	/**
+	 * Used to provide test data for the testWithSubSerialize method
+	 * @param name
+	 * @param age
+	 */
+	record User(String name, int age) {
 	}
 
 	/**
@@ -975,6 +996,74 @@ public class StateGraphTest {
 		System.out.println("result = " + result);
 		assertTrue(result.isPresent());
 
+	}
+
+	/**
+	 * Tests that lifecycle listeners receive correct nodeId for parallel node children.
+	 */
+	@Test
+	void testParallelNodeLifecycleListenerNodeId() throws Exception {
+		List<String> beforeNodeIds = new ArrayList<>();
+		List<String> afterNodeIds = new ArrayList<>();
+
+		var workflow = new StateGraph(createKeyStrategyFactory()).addNode("A", makeNode("A"))
+			.addNode("A1", makeNode("A1"))
+			.addNode("A2", makeNode("A2"))
+			.addNode("A3", makeNode("A3"))
+			.addNode("B", makeNode("B"))
+			.addEdge("A", "A1")
+			.addEdge("A", "A2")
+			.addEdge("A", "A3")
+			.addEdge("A1", "B")
+			.addEdge("A2", "B")
+			.addEdge("A3", "B")
+			.addEdge(START, "A")
+			.addEdge("B", END);
+
+		var app = workflow.compile(CompileConfig.builder().withLifecycleListener(new GraphLifecycleListener() {
+			@Override
+			public void before(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
+				synchronized (beforeNodeIds) {
+					beforeNodeIds.add(nodeId);
+					log.info("Lifecycle before: nodeId = {}", nodeId);
+				}
+			}
+
+			@Override
+			public void after(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
+				synchronized (afterNodeIds) {
+					afterNodeIds.add(nodeId);
+					log.info("Lifecycle after: nodeId = {}", nodeId);
+				}
+			}
+		}).build());
+
+		app.stream(Map.of(), RunnableConfig.builder().addParallelNodeExecutor("A", ForkJoinPool.commonPool()).build())
+			.blockLast();
+
+		log.info("Before nodeIds: {}", beforeNodeIds);
+		log.info("After nodeIds: {}", afterNodeIds);
+
+		assertTrue(beforeNodeIds.contains("A"));
+		assertTrue(afterNodeIds.contains("A"));
+
+		assertTrue(beforeNodeIds.contains("__PARALLEL__(A)"));
+		assertTrue(afterNodeIds.contains("__PARALLEL__(A)"));
+
+		assertTrue(beforeNodeIds.contains("A1"));
+		assertTrue(afterNodeIds.contains("A1"));
+
+		assertTrue(beforeNodeIds.contains("A2"));
+		assertTrue(afterNodeIds.contains("A2"));
+
+		assertTrue(beforeNodeIds.contains("A3"));
+		assertTrue(afterNodeIds.contains("A3"));
+
+		assertTrue(beforeNodeIds.contains("B"));
+		assertTrue(afterNodeIds.contains("B"));
+
+		long parallelIdCount = beforeNodeIds.stream().filter(id -> id.equals("__PARALLEL__(A)")).count();
+		assertEquals(1, parallelIdCount);
 	}
 
 }

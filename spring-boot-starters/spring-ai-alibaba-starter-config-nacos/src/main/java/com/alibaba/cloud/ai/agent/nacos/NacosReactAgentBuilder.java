@@ -19,13 +19,12 @@ package com.alibaba.cloud.ai.agent.nacos;
 import java.util.List;
 import java.util.Map;
 
-import com.alibaba.cloud.ai.agent.nacos.utils.CglibProxyFactory;
+import com.alibaba.cloud.ai.agent.nacos.utils.ChatOptionsProxy;
 import com.alibaba.cloud.ai.agent.nacos.vo.AgentVO;
 import com.alibaba.cloud.ai.agent.nacos.vo.McpServersVO;
 import com.alibaba.cloud.ai.agent.nacos.vo.ModelVO;
 import com.alibaba.cloud.ai.agent.nacos.vo.PromptVO;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.agent.node.AgentLlmNode;
 import com.alibaba.cloud.ai.graph.agent.node.AgentToolNode;
 import com.alibaba.cloud.ai.observation.model.ObservationMetadataAwareOptions;
@@ -61,7 +60,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 	}
 
 	@Override
-	public ReactAgent build() throws GraphStateException {
+	public ReactAgent build() {
 		if (this.name == null) {
 			this.name = nacosOptions.getAgentName();
 		}
@@ -86,12 +85,12 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 
 		//5.build chat client
 		ChatClient.Builder clientBuilder = null;
-		ObservationConfigration observationConfigration = nacosOptions.getObservationConfigration();
-		if (observationConfigration == null) {
+		ObservationConfiguration observationConfiguration = nacosOptions.getObservationConfiguration();
+		if (observationConfiguration == null) {
 			clientBuilder = ChatClient.builder(model);
 		}
 		else {
-			clientBuilder = ChatClient.builder(model, observationConfigration.getObservationRegistry() == null ? ObservationRegistry.NOOP : observationConfigration.getObservationRegistry(), nacosOptions.getObservationConfigration()
+			clientBuilder = ChatClient.builder(model, observationConfiguration.getObservationRegistry() == null ? ObservationRegistry.NOOP : observationConfiguration.getObservationRegistry(), nacosOptions.getObservationConfiguration()
 					.getChatClientObservationConvention());
 		}
 
@@ -107,7 +106,6 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 
 		//7. build tools
 		AgentLlmNode.Builder llmNodeBuilder = AgentLlmNode.builder().chatClient(chatClient);
-
 		if (outputKey != null && !outputKey.isEmpty()) {
 			llmNodeBuilder.outputKey(outputKey);
 		}
@@ -135,7 +133,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 
 		//register mcp tools
 		registryMcpServerListener(llmNode, toolNode, nacosOptions);
-		ReactAgent reactAgent = new ReactAgent(llmNode, toolNode, this);
+		ReactAgent reactAgent = new ReactAgent(llmNode, toolNode, buildConfig(),this);
 		agentVOHolder.setReactAgent(reactAgent);
 		//register agent base and prompt
 		registerAgentWithPrompt(nacosOptions, agentVO, agentVOHolder, reactAgent);
@@ -145,8 +143,9 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 	private void registryMcpServerListener(AgentLlmNode llmNode, AgentToolNode toolNode, NacosOptions nacosOptions) {
 
 		try {
+			String dataId = (nacosOptions.isMcpServersEncrypted() ? "cipher-kms-aes-256-" : "") + "mcp-servers.json";
 			nacosOptions.getNacosConfigService()
-					.addListener("mcp-servers.json", "ai-agent-" + nacosOptions.getAgentName(), new AbstractListener() {
+					.addListener(dataId, "ai-agent-" + nacosOptions.getAgentName(), new AbstractListener() {
 						@Override
 						public void receiveConfigInfo(String configInfo) {
 							McpServersVO mcpServersVO = JSON.parseObject(configInfo, McpServersVO.class);
@@ -169,7 +168,8 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 		try {
 			NacosConfigService nacosConfigService = nacosOptions.getNacosConfigService();
 			//1. register agent base listener
-			nacosConfigService.addListener("agent-base.json", "ai-agent-" + nacosOptions.getAgentName(),
+			String dataIdT = (nacosOptions.isAgentBaseEncrypted() ? "cipher-kms-aes-256-" : "") + "agent-base.json";
+			nacosConfigService.addListener(dataIdT, "ai-agent-" + nacosOptions.getAgentName(),
 					new AgentBaseListener(nacosOptions, agentVO.getPromptKey(), nacosContextHolder));
 			//2. registry prompt vo listener
 			registerPromptListener(nacosOptions, nacosContextHolder, agentVO.getPromptKey(), reactAgent);
@@ -182,14 +182,14 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 
 	/**
 	 * register prompt with key.
-	 * @param nacosOptions
-	 * @param promptKey
 	 */
 	static void registerPromptListener(NacosOptions nacosOptions, NacosContextHolder nacosContextHolder,
 			String promptKey, ReactAgent reactAgent) {
 		try {
 			PromptListener promptListener = new PromptListener(nacosContextHolder, reactAgent);
-			nacosOptions.getNacosConfigService().addListener(String.format("prompt-%s.json", promptKey),
+			String dataId = (nacosOptions.isPromptEncrypted() ? "cipher-kms-aes-256-" : "") + String.format("prompt-%s.json", promptKey);
+
+			nacosOptions.getNacosConfigService().addListener(dataId,
 					"nacos-ai-meta", promptListener);
 			nacosContextHolder.promptListeners.put(promptKey, promptListener);
 		}
@@ -202,7 +202,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 
 		try {
 			String agentName = nacosOptions.getAgentName();
-			String dataIdT = String.format(nacosOptions.isModelConfigEncrypted() ? "cipher-kms-aes-256-model.json" : "model.json", agentName);
+			String dataIdT = (nacosOptions.isModelEncrypted() ? "cipher-kms-aes-256-" : "") + "model.json";
 			nacosOptions.getNacosConfigService()
 					.addListener(dataIdT, "ai-agent-" + agentName, new AbstractListener() {
 						@Override
@@ -211,7 +211,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 							try {
 								OpenAiChatOptions openAiChatOptions = buildProxyChatOptions(modelVO, getMetadata(agentVOHolder.promptVO));
 								ChatModel chatModelNew = createModel(nacosOptions, modelVO, openAiChatOptions);
-								replaceModel(chatClient, chatModelNew);
+								replaceModel(chatClient, chatModelNew, openAiChatOptions);
 								agentVOHolder.setObservationMetadataAwareOptions((ObservationMetadataAwareOptions) openAiChatOptions);
 							}
 							catch (Exception e) {
@@ -238,7 +238,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 		OpenAiChatOptions openaiChatOptions = chatOptionsBuilder
 				.model(model.getModel())
 				.build();
-		return (OpenAiChatOptions) CglibProxyFactory.createProxy(openaiChatOptions, metadata);
+		return (OpenAiChatOptions) ChatOptionsProxy.createProxy(openaiChatOptions, metadata);
 
 	}
 
@@ -251,19 +251,19 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 		OpenAiChatModel.Builder builder = OpenAiChatModel.builder().defaultOptions(openAiChatOptions)
 				.openAiApi(openAiApi);
 		//inject observation config.
-		ObservationConfigration observationConfigration = nacosOptions.getObservationConfigration();
-		if (observationConfigration != null) {
-			if (observationConfigration.getToolCallingManager() != null) {
-				builder.toolCallingManager(observationConfigration.getToolCallingManager());
+		ObservationConfiguration observationConfiguration = nacosOptions.getObservationConfiguration();
+		if (observationConfiguration != null) {
+			if (observationConfiguration.getToolCallingManager() != null) {
+				builder.toolCallingManager(observationConfiguration.getToolCallingManager());
 			}
-			if (observationConfigration.getObservationRegistry() != null) {
-				builder.observationRegistry(observationConfigration.getObservationRegistry());
+			if (observationConfiguration.getObservationRegistry() != null) {
+				builder.observationRegistry(observationConfiguration.getObservationRegistry());
 			}
 		}
 
 		OpenAiChatModel openAiChatModel = builder.build();
-		if (observationConfigration != null && observationConfigration.getChatModelObservationConvention() != null) {
-			openAiChatModel.setObservationConvention(observationConfigration
+		if (observationConfiguration != null && observationConfiguration.getChatModelObservationConvention() != null) {
+			openAiChatModel.setObservationConvention(observationConfiguration
 					.getChatModelObservationConvention());
 		}
 
@@ -341,7 +341,8 @@ class AgentBaseListener extends AbstractListener {
 		}
 		if (nacosContextHolder.getPromptListeners().containsKey(currentPromptKey)) {
 			Listener listener = nacosContextHolder.getPromptListeners().remove(currentPromptKey);
-			nacosOptions.getNacosConfigService().removeListener(String.format("prompt-%s.json", currentPromptKey),
+			String dataId = (nacosOptions.isPromptEncrypted() ? "cipher-kms-aes-256-" : "") + String.format("prompt-%s.json", currentPromptKey);
+			nacosOptions.getNacosConfigService().removeListener(dataId,
 					"nacos-ai-meta", listener);
 		}
 
