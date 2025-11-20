@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.cloud.ai.examples.documentation.graph.core;
+package com.alibaba.cloud.ai.examples.documentation.graph.examples;
 
 import com.alibaba.cloud.ai.graph.CompileConfig;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
@@ -45,7 +45,7 @@ import static com.alibaba.cloud.ai.graph.action.AsyncNodeAction.node_async;
  * Redis 检查点持久化示例
  * 演示如何使用 Redis 数据库持久化工作流状态
  */
-public class CheckpointPostgresExample {
+public class CheckpointRedisExample {
 
 	/**
 	 * 初始化 RedisSaver
