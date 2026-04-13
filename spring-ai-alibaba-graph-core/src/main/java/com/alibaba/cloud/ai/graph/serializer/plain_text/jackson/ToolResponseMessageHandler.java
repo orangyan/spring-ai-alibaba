@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,21 @@
  */
 package com.alibaba.cloud.ai.graph.serializer.plain_text.jackson;
 
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.type.WritableTypeId;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
@@ -59,7 +60,19 @@ public interface ToolResponseMessageHandler {
 		public void serialize(ToolResponseMessage msg, JsonGenerator gen, SerializerProvider provider)
 				throws IOException {
 			gen.writeStartObject();
-			gen.writeStringField("@class", msg.getClass().getName());
+			serializeFields(msg, gen, provider);
+			gen.writeEndObject();
+		}
+
+		@Override
+		public void serializeWithType(ToolResponseMessage msg, JsonGenerator gen, SerializerProvider provider, TypeSerializer typeSer)
+				throws IOException {
+			WritableTypeId typeIdDef = typeSer.writeTypePrefix(gen, typeSer.typeId(msg, JsonToken.START_OBJECT));
+			serializeFields(msg, gen, provider);
+			typeSer.writeTypeSuffix(gen, typeIdDef);
+		}
+
+		private void serializeFields(ToolResponseMessage msg, JsonGenerator gen, SerializerProvider provider) throws IOException {
 			gen.writeStringField(AssistantMessageHandler.Field.TEXT.name, msg.getText());
 
 			gen.writeArrayFieldStart(Field.RESPONSES.name);
@@ -73,12 +86,6 @@ public interface ToolResponseMessageHandler {
 			gen.writeEndArray();
 
 			serializeMetadata(gen, msg.getMetadata());
-			gen.writeEndObject();
-		}
-
-		@Override
-		public void serializeWithType(ToolResponseMessage value, JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-			serialize(value, gen, serializers);
 		}
 	}
 
@@ -98,7 +105,9 @@ public interface ToolResponseMessageHandler {
 			var metadata = deserializeMetadata(mapper, node);
 
 			if (responsesNode.isNull() || responsesNode.isEmpty()) {
-				return new ToolResponseMessage(List.of(), metadata);
+				return ToolResponseMessage.builder()
+						.metadata(metadata)
+						.build();
 			}
 
 			var responses = new ArrayList<ToolResponseMessage.ToolResponse>(responsesNode.size());
@@ -106,7 +115,10 @@ public interface ToolResponseMessageHandler {
 				responses.add(mapper.treeToValue(responseNode, ToolResponseMessage.ToolResponse.class));
 			}
 
-			return new ToolResponseMessage(responses, metadata);
+			return ToolResponseMessage.builder()
+					.responses(responses)
+					.metadata(metadata)
+					.build();
 		}
 
 	}

@@ -18,9 +18,16 @@ package com.alibaba.cloud.ai.graph.agent.flow.builder;
 import com.alibaba.cloud.ai.graph.CompileConfig;
 import com.alibaba.cloud.ai.graph.agent.Agent;
 import com.alibaba.cloud.ai.graph.agent.flow.agent.FlowAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
+import com.alibaba.cloud.ai.graph.checkpoint.config.SaverConfig;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Abstract base builder for FlowAgent and its subclasses. Provides common builder
@@ -38,7 +45,15 @@ public abstract class FlowAgentBuilder<T extends FlowAgent, B extends FlowAgentB
 
 	public CompileConfig compileConfig;
 
+	public BaseCheckpointSaver saver;
+
 	public List<Agent> subAgents;
+
+	public StateSerializer stateSerializer;
+
+	public Executor executor;
+
+	public List<Hook> hooks;
 
 	/**
 	 * Sets the agent name.
@@ -70,6 +85,11 @@ public abstract class FlowAgentBuilder<T extends FlowAgent, B extends FlowAgentB
 		return self();
 	}
 
+	public B saver(BaseCheckpointSaver saver) {
+		this.saver = saver;
+		return self();
+	}
+
 	/**
 	 * Sets the list of sub-agents.
 	 * @param subAgents the list of sub-agents
@@ -77,6 +97,66 @@ public abstract class FlowAgentBuilder<T extends FlowAgent, B extends FlowAgentB
 	 */
 	public B subAgents(List<Agent> subAgents) {
 		this.subAgents = subAgents;
+		return self();
+	}
+
+	/**
+	 * Sets the state serializer for the agent.
+	 * @param stateSerializer the state serializer to use
+	 * @return this builder instance for method chaining
+	 */
+	public B stateSerializer(StateSerializer stateSerializer) {
+		this.stateSerializer = stateSerializer;
+		return self();
+	}
+
+	/**
+	 * Sets the executor for parallel nodes.
+	 * <p>
+	 * This executor will be used for all parallel nodes in the agent's execution graph.
+	 * When a parallel node is executed, it will use this executor to run the parallel
+	 * branches concurrently.
+	 * @param executor the {@link Executor} to use for parallel nodes
+	 * @return this builder instance for method chaining
+	 */
+	public B executor(Executor executor) {
+		this.executor = executor;
+		return self();
+	}
+
+	/**
+	 * Sets hooks for the agent. Hooks allow you to intercept and modify agent execution
+	 * at various points (before/after agent, before/after model calls).
+	 * <p>
+	 * Common use cases include:
+	 * <ul>
+	 *   <li>Message trimming to reduce token consumption</li>
+	 *   <li>Conversation summarization for long-running threads</li>
+	 *   <li>Logging and monitoring</li>
+	 *   <li>Content filtering and safety checks</li>
+	 * </ul>
+	 * @param hooks varargs of Hook instances
+	 * @return this builder instance for method chaining
+	 */
+	public B hooks(Hook... hooks) {
+		if (this.hooks == null) {
+			this.hooks = new ArrayList<>();
+		}
+		this.hooks.addAll(Arrays.asList(hooks));
+		return self();
+	}
+
+	/**
+	 * Sets hooks for the agent from a list.
+	 * @param hooks list of Hook instances
+	 * @return this builder instance for method chaining
+	 * @see #hooks(Hook...)
+	 */
+	public B hooks(List<? extends Hook> hooks) {
+		if (this.hooks == null) {
+			this.hooks = new ArrayList<>();
+		}
+		this.hooks.addAll(hooks);
 		return self();
 	}
 
@@ -107,6 +187,16 @@ public abstract class FlowAgentBuilder<T extends FlowAgent, B extends FlowAgentB
 	 * @return the built FlowAgent instance
 	 * @throws GraphStateException if agent creation fails
 	 */
-	public abstract T build() throws GraphStateException;
+	public T build() {
+		if (this.saver != null) {
+			if (this.compileConfig == null) {
+				this.compileConfig = CompileConfig.builder().saverConfig(SaverConfig.builder().register(saver).build()).build();
+			}
+			this.compileConfig = CompileConfig.builder(compileConfig).saverConfig(SaverConfig.builder().register(saver).build()).build();
+		}
+		return doBuild();
+	};
+
+	public abstract T doBuild();
 
 }

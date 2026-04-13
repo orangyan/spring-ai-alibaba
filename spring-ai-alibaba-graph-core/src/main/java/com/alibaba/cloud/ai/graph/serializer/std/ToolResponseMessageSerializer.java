@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,10 @@ class ToolResponseMessageSerializer implements Serializer<ToolResponseMessage> {
 	public ToolResponseMessage read(ObjectInput in) throws IOException, ClassNotFoundException {
 		var response = (List<ToolResponseMessage.ToolResponse>) in.readObject();
 		var metadata = (Map<String, Object>) in.readObject();
-		return new ToolResponseMessage(response, metadata);
+		return ToolResponseMessage.builder()
+			.responses(response)
+			.metadata(metadata)
+			.build();
 	}
 
 }

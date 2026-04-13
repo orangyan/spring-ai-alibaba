@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.converter.BeanOutputConverter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,19 +50,14 @@ public class StructuredOutputExample {
 				.dashScopeApi(dashScopeApi)
 				.build();
 
-		String contactInfoSchema = """
-				请按照以下JSON格式输出：
-				{
-					"name": "人名",
-					"email": "电子邮箱地址",
-					"phone": "电话号码"
-				}
-				""";
+		// Use BeanOutputConverter to generate outputSchema
+		BeanOutputConverter<ContactInfo> outputConverter = new BeanOutputConverter<>(ContactInfo.class);
+		String format = outputConverter.getFormat();
 
 		ReactAgent agent = ReactAgent.builder()
 				.name("contact_extractor")
 				.model(chatModel)
-				.outputSchema(contactInfoSchema)
+				.outputSchema(format)
 				.build();
 
 		AssistantMessage result = agent.call(
@@ -84,23 +80,14 @@ public class StructuredOutputExample {
 				.dashScopeApi(dashScopeApi)
 				.build();
 
-		String productReviewSchema = """
-				请严格按照以下JSON格式返回产品评价分析：
-				{
-					"rating": 1-5之间的整数评分,
-					"sentiment": "情感倾向（正面/负面/中性）",
-					"keyPoints": ["关键点1", "关键点2", "关键点3"],
-					"details": {
-						"pros": ["优点1", "优点2"],
-						"cons": ["缺点1", "缺点2"]
-					}
-				}
-				""";
+		// Use BeanOutputConverter to generate outputSchema
+		BeanOutputConverter<ProductReview> outputConverter = new BeanOutputConverter<>(ProductReview.class);
+		String format = outputConverter.getFormat();
 
 		ReactAgent agent = ReactAgent.builder()
 				.name("review_analyzer")
 				.model(chatModel)
-				.outputSchema(productReviewSchema)
+				.outputSchema(format)
 				.build();
 
 		AssistantMessage result = agent.call(
@@ -123,24 +110,14 @@ public class StructuredOutputExample {
 				.dashScopeApi(dashScopeApi)
 				.build();
 
-		String analysisSchema = """
-				请按照以下JSON格式返回文本分析结果：
-				{
-					"summary": "内容摘要（50字以内）",
-					"keywords": ["关键词1", "关键词2", "关键词3"],
-					"sentiment": "情感倾向（正面/负面/中性）",
-					"entities": {
-						"persons": ["人名1", "人名2"],
-						"locations": ["地点1", "地点2"],
-						"organizations": ["组织1", "组织2"]
-					}
-				}
-				""";
+		// Use BeanOutputConverter to generate outputSchema
+		BeanOutputConverter<TextAnalysis> outputConverter = new BeanOutputConverter<>(TextAnalysis.class);
+		String format = outputConverter.getFormat();
 
 		ReactAgent agent = ReactAgent.builder()
 				.name("text_analyzer")
 				.model(chatModel)
-				.outputSchema(analysisSchema)
+				.outputSchema(format)
 				.build();
 
 		AssistantMessage result = agent.call(
@@ -356,19 +333,14 @@ public class StructuredOutputExample {
 				.saver(new MemorySaver())
 				.build();
 
-		// 使用 outputSchema
-		String schema = """
-				{
-					"name": "人名",
-					"email": "电子邮箱",
-					"phone": "电话"
-				}
-				""";
+		// 使用 outputSchema (通过 BeanOutputConverter 生成)
+		BeanOutputConverter<ContactInfo> outputConverter = new BeanOutputConverter<>(ContactInfo.class);
+		String format = outputConverter.getFormat();
 
 		ReactAgent schemaAgent = ReactAgent.builder()
 				.name("schema_agent")
 				.model(chatModel)
-				.outputSchema(schema)
+				.outputSchema(format)
 				.saver(new MemorySaver())
 				.build();
 

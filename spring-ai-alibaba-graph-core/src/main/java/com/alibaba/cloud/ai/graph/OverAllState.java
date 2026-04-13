@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,7 +162,7 @@ public final class OverAllState implements Serializable {
 	 * @param keyStrategies the key strategies
 	 */
 	protected OverAllState(Map<String, Object> data, Map<String, KeyStrategy> keyStrategies) {
-		this.data = data != null ? data : new HashMap<>();
+		this.data = data != null ? new HashMap<>(data) : new HashMap<>();
 		this.keyStrategies = keyStrategies != null ? keyStrategies : new HashMap<>();
 		this.registerKeyAndStrategy(OverAllState.DEFAULT_INPUT_KEY, new ReplaceStrategy());
 	}
@@ -175,7 +175,7 @@ public final class OverAllState implements Serializable {
 	 */
 	protected OverAllState(Map<String, Object> data, Map<String, KeyStrategy> keyStrategies,
 			Store store) {
-		this.data = data != null ? data : new HashMap<>();
+		this.data = data != null ? new HashMap<>(data) : new HashMap<>();
 		this.keyStrategies = keyStrategies != null ? keyStrategies : new HashMap<>();
 		this.registerKeyAndStrategy(OverAllState.DEFAULT_INPUT_KEY, new ReplaceStrategy());
 		this.store = store;
@@ -390,12 +390,12 @@ public final class OverAllState implements Serializable {
 	}
 
 	/**
-	 * Updates the partial state from a schema using channels.
+	 * Updates the partial state from a schema using keyStrategyMap.
 	 * @param state The current state as a map of key-value pairs.
 	 * @param partialState The partial state to be updated.
 	 * @param keyStrategies A map of channel names to their implementations.
 	 * @return An updated version of the partial state after applying the schema and
-	 * channels.
+	 * keyStrategyMap.
 	 */
 	private static Map<String, Object> updatePartialStateFromSchema(Map<String, Object> state,
 			Map<String, Object> partialState, Map<String, KeyStrategy> keyStrategies) {

@@ -15,21 +15,19 @@
  */
 package com.alibaba.cloud.ai.graph.agent.flow.agent;
 
-import java.util.List;
-import java.util.Map;
-
 import com.alibaba.cloud.ai.graph.CompileConfig;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.StateGraph;
 import com.alibaba.cloud.ai.graph.agent.Agent;
 import com.alibaba.cloud.ai.graph.agent.flow.builder.FlowGraphBuilder;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.scheduling.ScheduleConfig;
 import com.alibaba.cloud.ai.graph.scheduling.ScheduledAgentTask;
+import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
 
-
-
-import static com.alibaba.cloud.ai.graph.utils.Messageutils.convertToMessages;
+import java.util.List;
+import java.util.concurrent.Executor;
 
 public abstract class FlowAgent extends Agent {
 
@@ -37,32 +35,72 @@ public abstract class FlowAgent extends Agent {
 
 	protected List<Agent> subAgents;
 
-	protected FlowAgent(String name, String description, CompileConfig compileConfig, List<Agent> subAgents)
-			throws GraphStateException {
+	protected StateSerializer stateSerializer;
+
+	protected List<Hook> hooks;
+
+	protected FlowAgent(String name, String description, CompileConfig compileConfig, List<Agent> subAgents) {
 		super(name, description);
 		this.compileConfig = compileConfig;
 		this.subAgents = subAgents;
+	}
+
+	protected FlowAgent(String name, String description, CompileConfig compileConfig, List<Agent> subAgents,
+						StateSerializer stateSerializer) {
+		super(name, description);
+		this.compileConfig = compileConfig;
+		this.subAgents = subAgents;
+		this.stateSerializer = stateSerializer;
+	}
+
+	protected FlowAgent(String name, String description, CompileConfig compileConfig, List<Agent> subAgents,
+						StateSerializer stateSerializer, Executor executor) {
+		super(name, description);
+		this.compileConfig = compileConfig;
+		this.subAgents = subAgents;
+		this.stateSerializer = stateSerializer;
+		this.executor = executor;
+	}
+
+	protected FlowAgent(String name, String description, CompileConfig compileConfig, List<Agent> subAgents,
+						StateSerializer stateSerializer, Executor executor, List<Hook> hooks) {
+		super(name, description);
+		this.compileConfig = compileConfig;
+		this.subAgents = subAgents;
+		this.stateSerializer = stateSerializer;
+		this.executor = executor;
+		this.hooks = hooks;
 	}
 
 	@Override
 	protected StateGraph initGraph() throws GraphStateException {
 		// Use FlowGraphBuilder to construct the graph
 		FlowGraphBuilder.FlowGraphConfig config = FlowGraphBuilder.FlowGraphConfig.builder()
-			.name(this.name())
-			.rootAgent(this)
-			.subAgents(this.subAgents());
+				.name(this.name())
+				.rootAgent(this)
+				.subAgents(this.subAgents());
+
+		// Set state serializer if available
+		if (this.stateSerializer != null) {
+			config.stateSerializer(this.stateSerializer);
+		}
+
+		// Set hooks if available
+		if (this.hooks != null && !this.hooks.isEmpty()) {
+			config.hooks(this.hooks);
+		}
 
 		// Delegate to specific graph builder based on agent type
 		return buildSpecificGraph(config);
 	}
 
 	@Override
-	public ScheduledAgentTask schedule(ScheduleConfig scheduleConfig) throws GraphStateException {
+	public ScheduledAgentTask schedule(ScheduleConfig scheduleConfig) {
 		CompiledGraph compiledGraph = getAndCompileGraph();
 		return compiledGraph.schedule(scheduleConfig);
 	}
 
-	public StateGraph asStateGraph(){
+	public StateGraph asStateGraph() {
 		return getGraph();
 	}
 
@@ -77,19 +115,17 @@ public abstract class FlowAgent extends Agent {
 	protected abstract StateGraph buildSpecificGraph(FlowGraphBuilder.FlowGraphConfig config)
 			throws GraphStateException;
 
-	public CompileConfig compileConfig() {
-		return compileConfig;
-	}
-
 	public List<Agent> subAgents() {
 		return this.subAgents;
 	}
 
 	/**
-	 * Creates a map with messages and input for String message
+	 * Returns the list of hooks configured for this agent.
+	 * Hooks can be used for message trimming, summarization, logging, and other purposes.
+	 * @return the list of hooks, or null if no hooks are configured
 	 */
-	private Map<String, Object> createInputMap(String message) {
-		return Map.of("messages", convertToMessages(message), "input", message);
+	public List<Hook> hooks() {
+		return this.hooks;
 	}
 
 }

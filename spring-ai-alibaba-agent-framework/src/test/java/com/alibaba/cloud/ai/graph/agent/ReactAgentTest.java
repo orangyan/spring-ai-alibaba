@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,48 @@ package com.alibaba.cloud.ai.graph.agent;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.alibaba.cloud.ai.graph.GraphRepresentation;
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.OverAllState;
+import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.alibaba.cloud.ai.graph.StateGraph;
+import com.alibaba.cloud.ai.graph.agent.hook.AgentHook;
+import com.alibaba.cloud.ai.graph.agent.hook.HookPosition;
+import com.alibaba.cloud.ai.graph.agent.hook.ModelHook;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
+import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
+import com.alibaba.cloud.ai.graph.serializer.plain_text.jackson.SpringAIJacksonStateSerializer;
+import com.alibaba.cloud.ai.graph.serializer.std.SpringAIStateSerializer;
+import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.converter.ListOutputConverter;
+import org.springframework.ai.converter.MapOutputConverter;
 
+import org.springframework.ai.support.ToolCallbacks;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.convert.support.DefaultConversionService;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +66,8 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import reactor.core.publisher.Flux;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,46 +77,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ReactAgentTest {
 
 	private ChatModel chatModel;
-
-	// Inner class for outputType example
-	public static class PoemOutput {
-		private String title;
-		private String content;
-		private String style;
-
-		public String getTitle() {
-			return title;
-		}
-
-		public void setTitle(String title) {
-			this.title = title;
-		}
-
-		public String getContent() {
-			return content;
-		}
-
-		public void setContent(String content) {
-			this.content = content;
-		}
-
-		public String getStyle() {
-			return style;
-		}
-
-		public void setStyle(String style) {
-			this.style = style;
-		}
-
-		@Override
-		public String toString() {
-			return "PoemOutput{" +
-					"title='" + title + '\'' +
-					", content='" + content + '\'' +
-					", style='" + style + '\'' +
-					'}';
-		}
-	}
 
 	@BeforeEach
 	void setUp() {
@@ -106,14 +99,16 @@ class ReactAgentTest {
 			assertTrue(result.isPresent(), "First result should be present");
 			OverAllState state1 = result.get();
 			assertTrue(state1.value("messages").isPresent(), "Messages should be present in first result");
-			assertEquals(2, ((List)state1.value("messages").get()).size(), "There should be 2 messages in the first result");
+			assertEquals(2, ((List) state1.value("messages")
+					.get()).size(), "There should be 2 messages in the first result");
 			Object messages1 = state1.value("messages").get();
 			assertNotNull(messages1, "Messages should not be null in first result");
 
 			assertTrue(result2.isPresent(), "Second result should be present");
 			OverAllState state2 = result2.get();
 			assertTrue(state2.value("messages").isPresent(), "Messages should be present in second result");
-			assertEquals(4, ((List<?>)state2.value("messages").get()).size(), "There should be 2 messages in the first result");
+			assertEquals(4, ((List<?>) state2.value("messages")
+					.get()).size(), "There should be 2 messages in the first result");
 			Object messages2 = state2.value("messages").get();
 			assertNotNull(messages2, "Messages should not be null in second result");
 
@@ -130,7 +125,7 @@ class ReactAgentTest {
 
 	@Test
 	public void testReactAgentMessage() throws Exception {
-		
+
 		ReactAgent agent = ReactAgent.builder().name("single_agent").model(chatModel).saver(new MemorySaver())
 				.build();
 		AssistantMessage message = agent.call("帮我写一篇100字左右散文。");
@@ -139,15 +134,24 @@ class ReactAgentTest {
 
 	@Test
 	public void testReactAgentWithOutputSchema() throws Exception {
-		
 
 		// Customized outputSchema
 		String customSchema = """
-				请按照以下JSON格式输出：
 				{
-					"title": "诗歌标题",
-					"content": "诗歌正文内容",
-					"style": "诗歌风格（如：现代诗、古体诗等）"
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string"
+						},
+						"content": {
+							"type": "string"
+						},
+						"style": {
+							"type": "string"
+						}
+					},
+					"additionalProperties": false
 				}
 				""";
 
@@ -170,7 +174,6 @@ class ReactAgentTest {
 
 	@Test
 	public void testReactAgentWithOutputType() throws Exception {
-		
 
 		// outputType will be automatically convert to schema
 		ReactAgent agent = ReactAgent.builder()
@@ -187,20 +190,32 @@ class ReactAgentTest {
 		System.out.println(message.getText());
 
 		assertTrue(message.getText().contains("title") || message.getText().contains("content") ||
-				message.getText().contains("style"),
+						message.getText().contains("style"),
 				"Output should contain structured fields");
 	}
 
 	@Test
 	public void testReactAgentWithOutputSchemaAndInvoke() throws Exception {
-		
 
 		String jsonSchema = """
-				请严格按照以下JSON格式返回结果：
 				{
-					"summary": "内容摘要",
-					"keywords": ["关键词1", "关键词2", "关键词3"],
-					"sentiment": "情感倾向（正面/负面/中性）"
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"summary": {
+							"type": "string"
+						},
+						"keywords": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						},
+						"sentiment": {
+							"type": "string"
+						}
+					},
+					"additionalProperties": false
 				}
 				""";
 
@@ -243,6 +258,16 @@ class ReactAgentTest {
 		System.out.println("TokenUsage: " + nodeOutput.tokenUsage());
 	}
 
+	/**
+	 * 打印ReactAgent的图表
+	 *
+	 * 使用getAndCompileGraph方法获取并打印ReactAgent的内部状态图
+	 */
+	private void printReactAgentGraph(ReactAgent agent) {
+		GraphRepresentation representation = agent.getAndCompileGraph().stateGraph.getGraph(GraphRepresentation.Type.PLANTUML);
+		System.out.println(representation.content());
+	}
+
 	@Test
 	public void testAgentNameAndTokenUsage2() throws Exception {
 		ReactAgent agent = ReactAgent.builder()
@@ -255,7 +280,7 @@ class ReactAgentTest {
 		Flux<NodeOutput> flux = agent.stream(new UserMessage("帮我写一篇100字左右散文。"));
 
 		flux.doOnNext(output -> {
-			if (output instanceof StreamingOutput<?> streamingOutput){
+			if (output instanceof StreamingOutput<?> streamingOutput) {
 				assertNotNull(streamingOutput, "NodeOutput should not be null");
 				assertNotNull(streamingOutput.tokenUsage(), "TokenUsage should not be null");
 				assertNotNull(streamingOutput.agent(), "Agent should not be null");
@@ -280,6 +305,781 @@ class ReactAgentTest {
 
 		AssistantMessage assistantMessage = agent.call("帮我写一首关于春天的现代诗。");
 		System.out.println(assistantMessage.getText());
+	}
+
+	/**
+	 * Test that ReactAgent can be configured with SpringAIJacksonStateSerializer.
+	 */
+	@Test
+	public void testReactAgentWithJacksonSerializer() throws Exception {
+		StateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("jackson_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.build();
+
+		// Verify serializer is set correctly in StateGraph
+		StateGraph stateGraph = agent.getStateGraph();
+		assertNotNull(stateGraph, "StateGraph should not be null");
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertNotNull(graphSerializer, "Serializer should not be null");
+		assertInstanceOf(SpringAIJacksonStateSerializer.class, graphSerializer,
+				"Serializer should be SpringAIJacksonStateSerializer");
+
+		// Test that agent works correctly with the serializer
+		Optional<OverAllState> result = agent.invoke("帮我写一篇100字左右散文。");
+		assertTrue(result.isPresent(), "Result should be present");
+		assertTrue(result.get().value("messages").isPresent(), "Messages should be present");
+	}
+
+	/**
+	 * Test that ReactAgent can be configured with SpringAIStateSerializer.
+	 */
+	@Test
+	public void testReactAgentWithSpringAIStateSerializer() throws Exception {
+		StateSerializer serializer = new SpringAIStateSerializer();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("binary_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.build();
+
+		// Verify serializer is set correctly in StateGraph
+		StateGraph stateGraph = agent.getStateGraph();
+		assertNotNull(stateGraph, "StateGraph should not be null");
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertNotNull(graphSerializer, "Serializer should not be null");
+		assertInstanceOf(SpringAIStateSerializer.class, graphSerializer,
+				"Serializer should be SpringAIStateSerializer");
+
+		// Test that agent works correctly with the serializer
+		Optional<OverAllState> result = agent.invoke("帮我写一篇100字左右散文。");
+		assertTrue(result.isPresent(), "Result should be present");
+		assertTrue(result.get().value("messages").isPresent(), "Messages should be present");
+	}
+
+	/**
+	 * Test that ReactAgent uses default serializer (SpringAIJacksonStateSerializer) when not specified.
+	 */
+	@Test
+	public void testReactAgentWithDefaultSerializer() throws Exception {
+		ReactAgent agent = ReactAgent.builder()
+				.name("default_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.build();
+
+		// Verify default serializer is set (should be SpringAIJacksonStateSerializer)
+		StateGraph stateGraph = agent.getStateGraph();
+		assertNotNull(stateGraph, "StateGraph should not be null");
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertNotNull(graphSerializer, "Serializer should not be null");
+		assertInstanceOf(SpringAIJacksonStateSerializer.class, graphSerializer,
+				"Default serializer should be SpringAIJacksonStateSerializer");
+
+		// Test that agent works correctly with default serializer
+		Optional<OverAllState> result = agent.invoke("帮我写一篇100字左右散文。");
+		assertTrue(result.isPresent(), "Result should be present");
+		assertTrue(result.get().value("messages").isPresent(), "Messages should be present");
+	}
+
+	/**
+	 * Test that serializer is used correctly during agent execution and state serialization.
+	 */
+	@Test
+	public void testReactAgentSerializerUsedInExecution() throws Exception {
+		StateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("execution_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.build();
+
+		// Execute multiple invocations to test serialization/deserialization
+		Optional<OverAllState> result1 = agent.invoke("帮我写一篇100字左右散文。");
+		assertTrue(result1.isPresent(), "First result should be present");
+
+		Optional<OverAllState> result2 = agent.invoke(new UserMessage("帮我写一首现代诗歌。"));
+		assertTrue(result2.isPresent(), "Second result should be present");
+
+		// Verify messages are correctly serialized/deserialized
+		assertTrue(result1.get().value("messages").isPresent(), "Messages should be present in first result");
+		assertTrue(result2.get().value("messages").isPresent(), "Messages should be present in second result");
+
+		// Verify serializer is still correctly set
+		StateGraph stateGraph = agent.getStateGraph();
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertInstanceOf(SpringAIJacksonStateSerializer.class, graphSerializer);
+	}
+
+	/**
+	 * Test that serializer works correctly with agent streaming.
+	 */
+	@Test
+	public void testReactAgentSerializerWithStreaming() throws Exception {
+		StateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("streaming_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.enableLogging(true)
+				.chatOptions(DashScopeChatOptions.builder().enableThinking(true).build())
+				.build();
+
+		// Test streaming
+		Flux<NodeOutput> flux = agent.stream(new UserMessage("帮我写一篇100字左右散文。"));
+
+		flux.doOnNext(output -> {
+			assertNotNull(output, "NodeOutput should not be null");
+			if (output instanceof StreamingOutput<?> streamingOutput) {
+				assertNotNull(streamingOutput.agent(), "Agent name should not be null");
+				assertEquals("streaming_agent", streamingOutput.agent(), "Agent name should match");
+			}
+		}).blockLast();
+
+		// Verify serializer is still correctly set
+		StateGraph stateGraph = agent.getStateGraph();
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertInstanceOf(SpringAIJacksonStateSerializer.class, graphSerializer);
+	}
+
+	/**
+	 * Test that serializer works correctly with output schema.
+	 */
+	@Test
+	public void testReactAgentSerializerWithOutputSchema() throws Exception {
+		StateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
+
+		String customSchema = """
+				请按照以下JSON格式输出：
+				{
+					"title": "诗歌标题",
+					"content": "诗歌正文内容",
+					"style": "诗歌风格（如：现代诗、古体诗等）"
+				}
+				""";
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("schema_serializer_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.outputSchema(customSchema)
+				.build();
+
+		// Verify serializer is set
+		StateGraph stateGraph = agent.getStateGraph();
+		StateSerializer graphSerializer = stateGraph.getStateSerializer();
+		assertInstanceOf(SpringAIJacksonStateSerializer.class, graphSerializer);
+
+		// Test execution
+		AssistantMessage message = agent.call("帮我写一首关于春天的诗歌。");
+		assertNotNull(message, "Message should not be null");
+		assertNotNull(message.getText(), "Message text should not be null");
+	}
+
+	/**
+	 * Test serializer consistency: same serializer instance should work across multiple agents.
+	 */
+	@Test
+	public void testReactAgentSerializerConsistency() throws Exception {
+		StateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
+
+		ReactAgent agent1 = ReactAgent.builder()
+				.name("agent1")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.build();
+
+		ReactAgent agent2 = ReactAgent.builder()
+				.name("agent2")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.stateSerializer(serializer)
+				.build();
+
+		// Both agents should use the same serializer type
+		StateSerializer serializer1 = agent1.getStateGraph().getStateSerializer();
+		StateSerializer serializer2 = agent2.getStateGraph().getStateSerializer();
+
+		assertNotNull(serializer1);
+		assertNotNull(serializer2);
+		assertEquals(serializer1.getClass(), serializer2.getClass(),
+				"Both agents should use the same serializer type");
+
+		// Both agents should work correctly
+		Optional<OverAllState> result1 = agent1.invoke("帮我写一篇100字左右散文。");
+		Optional<OverAllState> result2 = agent2.invoke("帮我写一篇100字左右散文。");
+
+		assertTrue(result1.isPresent(), "Agent1 result should be present");
+		assertTrue(result2.isPresent(), "Agent2 result should be present");
+	}
+
+	@Test
+	public void testReactAgentWithBeanOutputConverter() throws Exception {
+		// Use BeanOutputConverter to generate outputSchema
+		BeanOutputConverter<List<ActorsFilms>> outputConverter = new BeanOutputConverter<>(
+				new ParameterizedTypeReference<List<ActorsFilms>>() { });
+
+		String format = outputConverter.getFormat();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("actors_films_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.outputSchema(format)
+				.enableLogging(true)
+				.build();
+
+		AssistantMessage message = agent.call("列出3位知名演员及其代表作品，每位演员列出2-3部电影。");
+		assertNotNull(message, "Message should not be null");
+		assertNotNull(message.getText(), "Message text should not be null");
+		System.out.println("=== Output with BeanOutputConverter generated schema ===");
+		System.out.println(message.getText());
+
+		assertTrue(message.getText().contains("actor") || message.getText().contains("films"),
+				"Output should contain actor or films field");
+	}
+
+	@Test
+	public void testReactAgentWithMapOutputConverter() throws Exception {
+		// Use MapOutputConverter to generate outputSchema
+		MapOutputConverter mapOutputConverter = new MapOutputConverter();
+		String format = mapOutputConverter.getFormat();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("map_output_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.outputSchema(format)
+				.enableLogging(true)
+				.build();
+
+
+
+		AssistantMessage message = agent.call("请提供一个包含姓名、年龄和职业的JSON对象。");
+		assertNotNull(message, "Message should not be null");
+		assertNotNull(message.getText(), "Message text should not be null");
+		System.out.println("=== Output with MapOutputConverter generated schema ===");
+		System.out.println(message.getText());
+
+		assertTrue(message.getText().length() > 0, "Output should not be empty");
+	}
+
+	@Test
+	public void testReactAgentWithListOutputConverter() throws Exception {
+		// Use ListOutputConverter to generate outputSchema
+		ListOutputConverter listOutputConverter = new ListOutputConverter(new DefaultConversionService());
+		String format = listOutputConverter.getFormat();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("list_output_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.outputSchema(format)
+				.enableLogging(true)
+				.build();
+
+		AssistantMessage message = agent.call("请列出5个你最喜欢的编程语言。");
+		assertNotNull(message, "Message should not be null");
+		assertNotNull(message.getText(), "Message text should not be null");
+		System.out.println("=== Output with ListOutputConverter generated schema ===");
+		System.out.println(message.getText());
+
+        assertFalse(message.getText().isEmpty(), "Output should not be empty");
+	}
+
+    @Test
+    public void testReactAgentWithTools() throws GraphRunnerException, NoSuchFieldException, IllegalAccessException {
+
+        var react = ReactAgent.builder()
+                .name("demoReactAgent")
+                .model(chatModel)
+                .instruction("地点为: {target_topic}")
+                .tools(ToolCallbacks.from(new TestTools()))
+                .systemPrompt("你是一个天气预报助手，帮我查看指定地点的天气预报")
+                .build();
+
+        String output = react.call("上海,北京").getText();
+        System.out.println("ReactAgent Output: " + output);
+
+        assertNotNull(output);
+        assertFalse(output.isEmpty(), "Output should not be empty");
+
+        // 校验 hasTools 以检查是否包含工具定义
+        assertTrue(testHasTools(react ), "Tools should have been set");
+    }
+
+	@Test
+	public void testReactAgentStreamingWithTools() throws GraphRunnerException {
+
+		// Define a simple ModelHook that returns custom data
+		ModelHook streamingModelHook = new ModelHook() {
+			@Override
+			public String getName() {
+				return "streaming_test_hook";
+			}
+
+			@Override
+			public CompletableFuture<Map<String, Object>> beforeModel(OverAllState state, RunnableConfig config) {
+				return CompletableFuture.completedFuture(Map.of(
+					"hook_type", "before_model",
+					"custom_data", "streaming_hook_data",
+					"timestamp", System.currentTimeMillis()
+				));
+			}
+
+			@Override
+			public HookPosition[] getHookPositions() {
+				return new HookPosition[]{HookPosition.BEFORE_MODEL};
+			}
+		};
+
+		var react = ReactAgent.builder()
+				.name("demoReactAgent")
+				.model(chatModel)
+				.instruction("地点为: {target_topic}")
+				.tools(ToolCallbacks.from(new TestTools()))
+				.hooks(List.of(streamingModelHook))
+				.systemPrompt("你是一个天气预报助手，帮我查看指定地点的天气预报")
+				.outputKey("final_answer")
+				.build();
+
+		// Track whether we've seen each expected output type
+		AtomicBoolean hasAgentModelStreaming = new AtomicBoolean(false);
+		AtomicBoolean hasAgentModelFinished = new AtomicBoolean(false);
+		AtomicBoolean hasAgentToolFinished = new AtomicBoolean(false);
+		AtomicBoolean hasAgentHookFinished = new AtomicBoolean(false);
+
+		Flux<NodeOutput> flux = react.stream("上海,北京");
+		NodeOutput finalOutput = flux.doOnNext(output -> {
+			// START
+			if (output instanceof StreamingOutput<?> streamingOutput) {
+				System.out.println("ReactAgent Streaming Output Chunk: " + streamingOutput.getOutputType());
+				System.out.println("ReactAgent Streaming Output Chunk: " + streamingOutput.message());
+
+				// Check for expected output types
+				if (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_STREAMING) {
+					hasAgentModelStreaming.set(true);
+				}
+				if (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_FINISHED) {
+					hasAgentModelFinished.set(true);
+				}
+				if (streamingOutput.getOutputType() == OutputType.AGENT_TOOL_FINISHED) {
+					hasAgentToolFinished.set(true);
+				}
+				if (streamingOutput.getOutputType() == OutputType.AGENT_HOOK_FINISHED) {
+					hasAgentHookFinished.set(true);
+				}
+			}
+			// END
+		}).blockLast();
+
+		if (finalOutput == null) {
+			fail("ReactAgent stream completed without emitting any NodeOutput");
+		}
+		System.out.println("ReactAgent Final Output: " + finalOutput.state());
+
+		// Verify that all expected output types were received
+		assertTrue(hasAgentModelStreaming.get(), "Should have received AGENT_MODEL_STREAMING output");
+		assertTrue(hasAgentModelFinished.get(), "Should have received AGENT_MODEL_FINISHED output");
+		assertTrue(hasAgentToolFinished.get(), "Should have received AGENT_TOOL_FINISHED output");
+		assertTrue(hasAgentHookFinished.get(), "Should have received AGENT_HOOK_FINISHED output");
+	}
+
+    @Test
+    public void testReactAgentWithMultiple() throws GraphRunnerException, NoSuchFieldException, IllegalAccessException {
+
+        var reactAgent1 = ReactAgent.builder()
+                .name("demoReactAgent")
+                .model(chatModel)
+                .instruction("地点为: {target_topic}")
+                .tools(ToolCallbacks.from(new TestTools()))
+                .systemPrompt("你是一个天气预报助手，帮我查看指定地点的天气预报")
+                .build();
+
+        var reactAgent2 = ReactAgent.builder()
+                .name("demoReactAgent")
+                .model(chatModel)
+                .hooks(List.of(new TestModelHook(), new TestAgentHook()))
+                .instruction("主题为: {target_topic}")
+                .systemPrompt("你是一个诗歌写作专家，请按照给定的主题写作200字左右的诗歌")
+                .build();
+
+        var reactAgent3 = ReactAgent.builder()
+                .name("demoReactAgent")
+                .model(chatModel)
+                .instruction("地点为: {target_topic}")
+                .tools(ToolCallbacks.from(new TestTools()))
+                .systemPrompt("你是一个天气预报助手，帮我查看指定地点的天气预报")
+                .build();
+
+        // 普通调用
+        String output1 = reactAgent1.call("上海,北京").getText();
+        String output2 = reactAgent2.call("春天").getText();
+        String output3 = reactAgent3.call("杭州,北京").getText();
+
+        System.out.println(output1);
+        System.out.println(output2);
+        System.out.println(output3);
+
+        assertNotNull(output1);
+        assertFalse(output1.isEmpty(), "Output should not be empty");
+        assertNotNull(output2);
+        assertFalse(output2.isEmpty(), "Output should not be empty");
+        assertNotNull(output3);
+        assertFalse(output3.isEmpty(), "Output should not be empty");
+
+        // 校验工具包含
+        assertTrue(testHasTools(reactAgent1), "Tools should have been set");
+        assertFalse(testHasTools(reactAgent2), "Tools should not have been set");
+        assertTrue(testHasTools(reactAgent3), "Tools should have been set");
+    }
+
+    @Test
+    public void testReactAgentWithHooks() throws GraphRunnerException {
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outputStream));
+
+        String agentOutput = ReactAgent.builder()
+                .name("demoReactAgent")
+                .model(chatModel)
+                .hooks(List.of(new TestModelHook(), new TestAgentHook()))
+                .instruction("主题为: {target_topic}")
+                .systemPrompt("你是一个诗歌写作专家，请按照给定的主题写作200字左右的诗歌")
+                .build()
+                .call("春天")
+                .getText();
+
+        System.setOut(originalOut);
+
+        System.out.println("ReactAgent Output: " + agentOutput);
+
+        assertNotNull(agentOutput);
+        assertFalse(agentOutput.isEmpty(), "Output should not be empty");
+
+        // 校验控制台输出是否包含 hooks 内容
+        String consoleOutput = outputStream.toString();
+        assertTrue(consoleOutput.contains("准备调用模型..."), "Console output should contain '准备调用模型...'");
+        assertTrue(consoleOutput.contains("Agent 开始执行"), "Console output should contain 'Agent 开始执行'");
+    }
+
+    static class TestTools {
+
+        @Tool(name = "getWeatherByCity", description = "Get weather information by city  name", returnDirect = false)
+        public String getWeatherByCity(@ToolParam(description = "城市地址列表") List<String> cityNameList) {
+            StringBuilder builder = new StringBuilder();
+            for (String cityName : cityNameList) {
+                builder.append(cityName + "天气不错");
+            }
+
+            return builder.toString();
+        }
+    }
+
+    static class TestModelHook extends ModelHook {
+
+        @Override
+        public String getName() {
+            return "test_model_hook";
+        }
+
+        @Override
+        public CompletableFuture<Map<String, Object>> beforeModel(OverAllState state, RunnableConfig config) {
+            System.out.println("准备调用模型...");
+            return CompletableFuture.completedFuture(Map.of("extra_context", "某些额外信息"));
+        }
+    }
+
+    static class TestAgentHook extends AgentHook {
+
+        @Override
+        public String getName() {
+            return "test_agent_hook";
+        }
+
+        @Override
+        public CompletableFuture<Map<String, Object>> beforeAgent(OverAllState state, RunnableConfig config) {
+            System.out.println("Agent 开始执行");
+            return CompletableFuture.completedFuture(Map.of("start_time", System.currentTimeMillis()));
+        }
+    }
+
+	// Inner class for outputType example
+	public static class PoemOutput {
+		private String title;
+		private String content;
+		private String style;
+
+		public String getTitle() {
+			return title;
+		}
+
+		public void setTitle(String title) {
+			this.title = title;
+		}
+
+		public String getContent() {
+			return content;
+		}
+
+		public void setContent(String content) {
+			this.content = content;
+		}
+
+		public String getStyle() {
+			return style;
+		}
+
+		public void setStyle(String style) {
+			this.style = style;
+		}
+
+		@Override
+		public String toString() {
+			return "PoemOutput{" +
+					"title='" + title + '\'' +
+					", content='" + content + '\'' +
+					", style='" + style + '\'' +
+					'}';
+		}
+	}
+
+	// Inner class for BeanOutputConverter example
+	public static class ActorsFilms {
+		private String actor;
+		private List<String> films;
+
+		public String getActor() {
+			return actor;
+		}
+
+		public void setActor(String actor) {
+			this.actor = actor;
+		}
+
+		public List<String> getFilms() {
+			return films;
+		}
+
+		public void setFilms(List<String> films) {
+			this.films = films;
+		}
+	}
+
+    private static Boolean testHasTools(ReactAgent reactAgent) throws NoSuchFieldException, IllegalAccessException {
+
+        Field hasToolsField = reactAgent.getClass().getDeclaredField("hasTools");
+        hasToolsField.setAccessible(true);
+
+        return (Boolean) hasToolsField.get(reactAgent);
+    }
+
+	/**
+	 * Test that ReactAgent can be configured with executor.
+	 */
+	@Test
+	public void testReactAgentWithExecutor() throws Exception {
+		Executor customExecutor = Executors.newFixedThreadPool(4);
+		try {
+			ReactAgent agent = ReactAgent.builder()
+					.name("executor_agent")
+					.model(chatModel)
+					.saver(new MemorySaver())
+					.executor(customExecutor)
+					.build();
+
+			assertNotNull(agent, "Agent should not be null");
+
+			// Verify executor is set and passed to RunnableConfig using reflection
+			RunnableConfig config = buildNonStreamConfig(agent, null);
+			assertNotNull(config, "RunnableConfig should not be null");
+			
+			assertTrue(config.metadata(RunnableConfig.DEFAULT_PARALLEL_EXECUTOR_KEY).isPresent(),
+				"Default parallel executor should be present in metadata");
+			assertEquals(customExecutor, 
+				config.metadata(RunnableConfig.DEFAULT_PARALLEL_EXECUTOR_KEY).get(),
+				"Executor in metadata should match configured executor");
+		} finally {
+			((java.util.concurrent.ExecutorService) customExecutor).shutdown();
+		}
+	}
+
+	/**
+	 * Test that ReactAgent without executor doesn't have executor in metadata.
+	 */
+	@Test
+	public void testReactAgentWithoutExecutor() throws Exception {
+		ReactAgent agent = ReactAgent.builder()
+				.name("no_executor_agent")
+				.model(chatModel)
+				.saver(new MemorySaver())
+				.build();
+
+		assertNotNull(agent, "Agent should not be null");
+
+		// Verify no executor in metadata when not configured
+		RunnableConfig config = buildNonStreamConfig(agent, null);
+		assertNotNull(config, "RunnableConfig should not be null");
+		
+		assertFalse(config.metadata(RunnableConfig.DEFAULT_PARALLEL_EXECUTOR_KEY).isPresent(),
+			"Default parallel executor should not be present when not configured");
+	}
+
+	/**
+	 * Helper method to call protected buildNonStreamConfig using reflection.
+	 */
+	private RunnableConfig buildNonStreamConfig(Agent agent, RunnableConfig config) throws Exception {
+		Method method = Agent.class.getDeclaredMethod("buildNonStreamConfig", RunnableConfig.class);
+		method.setAccessible(true);
+		return (RunnableConfig) method.invoke(agent, config);
+	}
+
+	@Test
+	public void testInstructionSentToLLM() throws Exception {
+		String systemPromptText = "你是一个专业的技术问答助手，擅长用简洁明了的语言解释复杂的技术概念。";
+		String instructionText = "请用不超过100字简洁地回答用户的问题，重点突出核心要点。";
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("instruction_test_agent")
+				.model(chatModel)
+				.systemPrompt(systemPromptText)
+				.instruction(instructionText)
+				.saver(new MemorySaver())
+				.enableLogging(true)
+				.build();
+
+		assertNotNull(agent, "Agent 不应为空");
+
+		AssistantMessage response = agent.call("什么是 RESTful API?");
+		assertNotNull(response, "响应不应为空");
+		assertNotNull(response.getText(), "响应文本不应为空");
+		assertFalse(response.getText().isEmpty(), "响应文本不应为空字符串");
+		assertTrue(response.getText().length() > 0, "响应应该有内容");
+	}
+
+
+	@Test
+	public void testDynamicSystemPromptUpdate() throws Exception {
+		String initialSystemPrompt = "你是一个专业的技术助手，回答要简洁明了。";
+		String updatedSystemPrompt = "你是一个诗歌创作专家，用优美的语言回答问题。";
+		String finalSystemPrompt = "你是一个数学专家，用精确的数字回答问题。";
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("dynamic_system_prompt_agent")
+				.model(chatModel)
+				.systemPrompt(initialSystemPrompt)
+				.saver(new MemorySaver())
+				.enableLogging(true)
+				.build();
+
+		assertNotNull(agent, "Agent 不应为空");
+
+		AssistantMessage response1 = agent.call("什么是 Java？");
+		assertNotNull(response1, "第一次响应不应为空");
+		assertFalse(response1.getText().isEmpty(), "第一次响应不应为空字符串");
+		System.out.println(response1.getText());
+
+		agent.setSystemPrompt(updatedSystemPrompt);
+
+		AssistantMessage response2 = agent.call("什么是 Spring？");
+		assertNotNull(response2, "第二次响应不应为空");
+		assertFalse(response2.getText().isEmpty(), "第二次响应不应为空字符串");
+		System.out.println(response2.getText());
+
+		agent.setSystemPrompt(finalSystemPrompt);
+
+		AssistantMessage response3 = agent.call("1+1等于多少？");
+		assertNotNull(response3, "第三次响应不应为空");
+		assertFalse(response3.getText().isEmpty(), "第三次响应不应为空字符串");
+		System.out.println(response3.getText());
+
+		assertTrue(response1.getText().length() > 0, "第一次响应应该有内容");
+		assertTrue(response2.getText().length() > 0, "第二次响应应该有内容");
+		assertTrue(response3.getText().length() > 0, "第三次响应应该有内容");
+	}
+
+
+	@Test
+	void testChatOptionsImmutability() {
+		ToolCallback tool1 = ToolCallbacks.from(new TestTools())[0];
+
+		DashScopeChatOptions originalOptions = DashScopeChatOptions.builder()
+			.model("qwen-plus")
+			.temperature(0.7)
+			.toolCallbacks(List.of(tool1))
+			.build();
+
+		int originalToolCount = originalOptions.getToolCallbacks().size();
+		String originalModel = originalOptions.getModel();
+		Double originalTemperature = originalOptions.getTemperature();
+		String originalToolName = originalOptions.getToolCallbacks().get(0).getToolDefinition().name();
+
+		ToolCallback tool2 = ToolCallbacks.from(new TestTools())[0];
+		ReactAgent agent = ReactAgent.builder()
+			.name("test-agent")
+			.model(chatModel)
+			.chatOptions(originalOptions)
+			.tools(tool2)
+			.saver(new MemorySaver())
+			.build();
+		assertEquals(originalToolCount, originalOptions.getToolCallbacks().size(),
+			"原始 chatOptions 的 toolCallbacks 数量不应改变");
+		assertEquals(originalModel, originalOptions.getModel(),
+			"原始 chatOptions 的 model 不应改变");
+		assertEquals(originalTemperature, originalOptions.getTemperature(),
+			"原始 chatOptions 的 temperature 不应改变");
+
+		List<ToolCallback> originalToolCallbacks = originalOptions.getToolCallbacks();
+		assertEquals(1, originalToolCallbacks.size(), "原始 toolCallbacks 应该只有 1 个");
+		assertEquals(originalToolName, originalToolCallbacks.get(0).getToolDefinition().name(),
+			"原始 toolCallbacks 的工具名称不应改变");
+	}
+
+	@Test
+	void testSharedChatOptionsAcrossAgents() {
+		DashScopeChatOptions sharedOptions = DashScopeChatOptions.builder()
+			.model("qwen-plus")
+			.temperature(0.7)
+			.build();
+
+		ToolCallback tool1 = ToolCallbacks.from(new TestTools())[0];
+		ToolCallback tool2 = ToolCallbacks.from(new TestTools())[0];
+
+		ReactAgent agent1 = ReactAgent.builder()
+			.name("agent1")
+			.model(chatModel)
+			.chatOptions(sharedOptions)
+			.tools(tool1)
+			.saver(new MemorySaver())
+			.build();
+
+		ReactAgent agent2 = ReactAgent.builder()
+			.name("agent2")
+			.model(chatModel)
+			.chatOptions(sharedOptions)
+			.tools(tool2)
+			.saver(new MemorySaver())
+			.build();
+
+		List<ToolCallback> sharedToolCallbacks = sharedOptions.getToolCallbacks();
+		assertTrue(sharedToolCallbacks == null || sharedToolCallbacks.isEmpty(),
+			"共享的 chatOptions 不应该被设置 toolCallbacks");
+
+		assertNotNull(agent1);
+		assertNotNull(agent2);
 	}
 
 }

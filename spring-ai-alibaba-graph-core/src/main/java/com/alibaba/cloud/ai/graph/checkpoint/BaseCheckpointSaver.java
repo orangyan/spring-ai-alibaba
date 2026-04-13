@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,24 +20,15 @@ import com.alibaba.cloud.ai.graph.RunnableConfig;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
 public interface BaseCheckpointSaver {
+	String THREAD_ID_DEFAULT = "$default";
 
-	public String THREAD_ID_DEFAULT = "$default";
-
-	record Tag(String threadId, Collection<Checkpoint> checkpoints) {
-		public Tag(String threadId, Collection<Checkpoint> checkpoints) {
-			this.threadId = threadId;
-			this.checkpoints = ofNullable(checkpoints).map(List::copyOf).orElseGet(List::of);
-		}
-	}
-
-	default Tag release(RunnableConfig config) throws Exception {
-		return null;
+	default Optional<Checkpoint> getLast(LinkedList<Checkpoint> checkpoints, RunnableConfig config) {
+		return (checkpoints.isEmpty()) ? Optional.empty() : ofNullable(checkpoints.peek());
 	}
 
 	Collection<Checkpoint> list(RunnableConfig config);
@@ -46,14 +37,13 @@ public interface BaseCheckpointSaver {
 
 	RunnableConfig put(RunnableConfig config, Checkpoint checkpoint) throws Exception;
 
-	boolean clear(RunnableConfig config);
+	Tag release(RunnableConfig config) throws Exception;
 
-	default Optional<Checkpoint> getLast(LinkedList<Checkpoint> checkpoints, RunnableConfig config) {
-		return (checkpoints == null || checkpoints.isEmpty()) ? Optional.empty() : ofNullable(checkpoints.peek());
-	}
-
-	default LinkedList<Checkpoint> getLinkedList(List<Checkpoint> checkpoints) {
-		return Objects.nonNull(checkpoints) ? new LinkedList<>(checkpoints) : new LinkedList<>();
+	record Tag(String threadId, Collection<Checkpoint> checkpoints) {
+		public Tag(String threadId, Collection<Checkpoint> checkpoints) {
+			this.threadId = threadId;
+			this.checkpoints = ofNullable(checkpoints).map(List::copyOf).orElseGet(List::of);
+		}
 	}
 
 }

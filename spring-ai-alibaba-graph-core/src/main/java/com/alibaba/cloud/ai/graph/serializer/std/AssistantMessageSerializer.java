@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2024-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,11 @@ class AssistantMessageSerializer implements NullableObjectSerializer<AssistantMe
 		var text = readNullableUTF(in).orElse(null);
 		var metadata = (Map<String, Object>) in.readObject();
 		var toolCalls = (List<AssistantMessage.ToolCall>) readNullableObject(in).orElseGet(List::of);
-		return new AssistantMessage(text, metadata, toolCalls);
+		return AssistantMessage.builder()
+			.content(text)
+			.properties(metadata)
+			.toolCalls(toolCalls)
+			.build();
 	}
 
 }
